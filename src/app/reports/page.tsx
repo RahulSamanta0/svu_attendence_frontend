@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { utils, writeFile } from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download,
@@ -34,6 +35,7 @@ type ReportRow = {
   checkInTime: string;
   checkOutTime: string;
   isEarlyCheckOut: boolean;
+  leaveReason?: string;
 };
 
 type Toast = {
@@ -129,36 +131,90 @@ export default function ReportsPage() {
     fetchReports();
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     try {
       if (filteredData.length === 0) {
         addToast('No data available to export.', 'info');
         return;
       }
 
-      const excelData = filteredData.map(row => {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'SVU System';
+      workbook.created = new Date();
+      
+      const worksheet = workbook.addWorksheet('Attendance Report', {
+        views: [{ state: 'frozen', ySplit: 1 }] // Freeze header row
+      });
+
+      worksheet.columns = [
+        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Name', key: 'name', width: 25 },
+        { header: 'ID / Employee ID', key: 'employeeId', width: 20 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Check In', key: 'checkIn', width: 15 },
+        { header: 'Check Out', key: 'checkOut', width: 15 },
+        { header: 'Early Checkout', key: 'earlyCheckout', width: 15 },
+        { header: 'Leave Reason', key: 'leaveReason', width: 25 }
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      headerRow.height = 25;
+
+      filteredData.forEach((row, index) => {
         let safeDate = 'N/A';
         try {
           if (row.date) safeDate = format(new Date(row.date), 'yyyy-MM-dd');
         } catch (e) { }
 
-        return {
-          Date: safeDate,
-          Name: row.name,
-          'ID / Employee ID': row.employeeId,
-          Status: row.status,
-          'Check In': row.checkInTime || '-',
-          'Check Out': row.checkOutTime || '-',
-          'Early Checkout': row.isEarlyCheckOut ? 'Yes' : 'No'
-        };
+        const addedRow = worksheet.addRow({
+          date: safeDate,
+          name: row.name,
+          employeeId: row.employeeId || '-',
+          status: row.status,
+          checkIn: row.checkInTime || '-',
+          checkOut: row.checkOutTime || '-',
+          earlyCheckout: row.isEarlyCheckOut ? 'Yes' : 'No',
+          leaveReason: row.leaveReason || '-'
+        });
+
+        if (index % 2 === 0) {
+          addedRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+        }
+
+        addedRow.eachCell((cell, colNumber) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+          };
+          if (colNumber !== 2 && colNumber !== 8) {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+          }
+        });
+
+        const statusCell = addedRow.getCell('status');
+        statusCell.font = { bold: true };
+        if (row.status === 'Present') statusCell.font.color = { argb: 'FF15803D' };
+        else if (row.status === 'Absent') statusCell.font.color = { argb: 'FFBE123C' };
+        else if (row.status === 'Late') statusCell.font.color = { argb: 'FFB45309' };
       });
 
-      const worksheet = utils.json_to_sheet(excelData);
-      const workbook = utils.book_new();
-      utils.book_append_sheet(workbook, worksheet, "Attendance Report");
+      worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: filteredData.length + 1, column: 8 }
+      };
 
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
       const filename = `SVU_Attendance_Report_${preset !== 'custom' ? preset : 'custom'}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
-      writeFile(workbook, filename);
+      saveAs(blob, filename);
       addToast(`Excel report successfully downloaded!`, 'success');
     } catch (err) {
       console.error("Export Error: ", err);
@@ -526,12 +582,16 @@ export default function ReportsPage() {
                       }`}>
                       Early Checkout
                     </th>
+                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                      }`}>
+                      Leave Reason
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredData.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center text-slate-500 font-bold text-xs">
+                      <td colSpan={7} className="px-6 py-16 text-center text-slate-500 font-bold text-xs">
                         No ledger logs match the current query dates or parameters.
                       </td>
                     </tr>
@@ -587,6 +647,10 @@ export default function ReportsPage() {
                             ) : (
                               <span className="text-slate-350 text-xs">-</span>
                             )}
+                          </td>
+                          <td className={`font-medium text-slate-600 ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
+                            }`}>
+                            {row.leaveReason || '-'}
                           </td>
                         </tr>
                       );

@@ -36,6 +36,7 @@ type AttendanceRecord = {
   checkInTime: string;
   checkOutTime: string;
   isEarlyCheckOut: boolean;
+  leaveReason: string;
 };
 
 type Toast = {
@@ -74,13 +75,23 @@ export default function AttendancePage() {
     }
   }, [date, router]);
 
-  const addToast = (message: string, type: 'success' | 'error' | 'info') => {
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 3000);
-  };
+  }, []);
+
+  const [year, month, day] = date.split('-');
+  const selectedDateObj = new Date(Number(year), Number(month) - 1, Number(day));
+  const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
+
+  useEffect(() => {
+    if (isWeekend && !isAuthChecking) {
+      addToast('Weekend holiday: attendance is not recorded.', 'info');
+    }
+  }, [isWeekend, addToast, isAuthChecking]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -99,7 +110,7 @@ export default function AttendancePage() {
 
       // Initialize defaults for staff members
       personsData.forEach((p: Person) => {
-        newRecords[p._id] = { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false };
+        newRecords[p._id] = { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: '' };
       });
 
       if (reportsData) {
@@ -109,7 +120,8 @@ export default function AttendancePage() {
             status: r.status,
             checkInTime: r.checkInTime || '',
             checkOutTime: r.checkOutTime || '',
-            isEarlyCheckOut: r.isEarlyCheckOut || false
+            isEarlyCheckOut: r.isEarlyCheckOut || false,
+            leaveReason: r.leaveReason || ''
           };
         });
       }
@@ -132,7 +144,7 @@ export default function AttendancePage() {
       if (status === 'Absent') {
         return {
           ...prev,
-          [personId]: { status, checkInTime: '', checkOutTime: '', isEarlyCheckOut: false }
+          [personId]: { status, checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: current.leaveReason || '' }
         };
       }
       const updatedCheckIn = current.checkInTime || (status === 'Late' ? '09:30' : '09:00');
@@ -158,6 +170,13 @@ export default function AttendancePage() {
     }));
   };
 
+  const handleLeaveReasonChange = (personId: string, value: string) => {
+    setRecords(prev => ({
+      ...prev,
+      [personId]: { ...prev[personId], leaveReason: value }
+    }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -166,7 +185,8 @@ export default function AttendancePage() {
         status: data.status,
         checkInTime: data.checkInTime,
         checkOutTime: data.checkOutTime,
-        isEarlyCheckOut: data.isEarlyCheckOut
+        isEarlyCheckOut: data.isEarlyCheckOut,
+        leaveReason: data.leaveReason
       }));
       await axios.post(`${API_URL}/attendance`, { date, records: recordsArray });
       setOriginalRecords(JSON.parse(JSON.stringify(records)));
@@ -224,7 +244,7 @@ export default function AttendancePage() {
   const markAllPresent = () => {
     const updated = { ...records };
     persons.forEach(p => {
-      const current = updated[p._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false };
+      const current = updated[p._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: '' };
       updated[p._id] = {
         ...current,
         status: 'Present',
@@ -243,7 +263,8 @@ export default function AttendancePage() {
         status: 'Absent',
         checkInTime: '',
         checkOutTime: '',
-        isEarlyCheckOut: false
+        isEarlyCheckOut: false,
+        leaveReason: ''
       };
     });
     setRecords(updated);
@@ -385,7 +406,7 @@ export default function AttendancePage() {
 
           <button
             onClick={handleSave}
-            disabled={saving || loading || persons.length === 0}
+            disabled={saving || loading || persons.length === 0 || isWeekend}
             className={`flex items-center gap-1.5 font-bold text-xs py-2.5 px-5 rounded-sm transition-all shadow-sm ${hasUnsavedChanges
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100 hover:shadow-sm hover:-translate-y-0.5'
               : 'bg-slate-800 hover:bg-slate-950 text-white shadow-sm'
@@ -762,7 +783,7 @@ export default function AttendancePage() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
           >
             {sortedPersons.map((person) => {
-              const rec = records[person._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false };
+              const rec = records[person._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: '' };
               const isAbsent = rec.status === 'Absent';
               const isCompact = cardSize === 'compact';
 
@@ -877,6 +898,19 @@ export default function AttendancePage() {
                         />
                       </button>
                     </div>
+                    
+                    {isAbsent && (
+                      <div className="flex flex-col gap-0.5 mt-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Reason for Leave</label>
+                        <input
+                          type="text"
+                          value={rec.leaveReason}
+                          onChange={(e) => handleLeaveReasonChange(person._id, e.target.value)}
+                          placeholder="E.g. Sick, Vacation"
+                          className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 font-semibold bg-rose-50/30"
+                        />
+                      </div>
+                    )}
                   </div>
 
                 </motion.div>
@@ -915,11 +949,15 @@ export default function AttendancePage() {
                       }`}>
                       Early Checkout
                     </th>
+                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                      }`}>
+                      Leave Reason
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {sortedPersons.map((person) => {
-                    const rec = records[person._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false };
+                    const rec = records[person._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: '' };
                     const isAbsent = rec.status === 'Absent';
                     const isCompact = cardSize === 'compact';
 
@@ -999,6 +1037,17 @@ export default function AttendancePage() {
                               />
                             </button>
                           </div>
+                        </td>
+                        <td className={isCompact ? 'px-4 py-2' : 'px-6 py-3.5'}>
+                          <input
+                            type="text"
+                            value={rec.leaveReason}
+                            onChange={(e) => handleLeaveReasonChange(person._id, e.target.value)}
+                            disabled={!isAbsent}
+                            placeholder={isAbsent ? "Reason" : ""}
+                            className={`w-full border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+                              } ${isAbsent ? 'bg-rose-50/30' : ''}`}
+                          />
                         </td>
                       </tr>
                     );
