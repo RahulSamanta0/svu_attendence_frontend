@@ -3,6 +3,8 @@
 import axios from 'axios';
 import { LogOut } from 'lucide-react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 export default function LogoutButton({ 
   variant = 'sidebar' 
 }: { 
@@ -12,7 +14,7 @@ export default function LogoutButton({
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        await axios.post('http://localhost:3001/auth/logout', {}, {
+        await axios.post(`${API_URL}/auth/logout`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }

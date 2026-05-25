@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 
-const API_URL = 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type Person = { _id: string; name: string; employeeId: string };
 type Status = 'Present' | 'Absent' | 'Late';
@@ -185,7 +185,7 @@ export default function AttendancePage() {
         status: data.status,
         checkInTime: data.checkInTime,
         checkOutTime: data.checkOutTime,
-        isEarlyCheckOut: data.isEarlyCheckOut,
+        isEarlyCheckOut: data.checkOutTime ? data.checkOutTime < '19:00' : false,
         leaveReason: data.leaveReason
       }));
       await axios.post(`${API_URL}/attendance`, { date, records: recordsArray });
@@ -878,26 +878,6 @@ export default function AttendancePage() {
                         />
                       </div>
                     </div>
-
-                    <div className={`flex items-center justify-between border-t border-slate-100 ${isCompact ? 'pt-2 mt-0.5' : 'pt-2.5 mt-1'
-                      }`}>
-                      <span className={`text-[10px] font-bold flex items-center gap-1 ${isAbsent ? 'text-slate-300' : 'text-slate-500'
-                        }`}>
-                        <XCircle size={isCompact ? 11 : 13} className={rec.isEarlyCheckOut ? 'text-rose-500' : 'text-slate-400'} /> Early Out
-                      </span>
-                      <button
-                        onClick={() => handleEarlyToggle(person._id)}
-                        disabled={isAbsent}
-                        type="button"
-                        className={`relative inline-flex h-4 w-7.5 shrink-0 cursor-pointer rounded border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${rec.isEarlyCheckOut ? 'bg-rose-500' : 'bg-slate-200'
-                          } ${isAbsent ? 'opacity-30 cursor-not-allowed' : ''}`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-3.2 w-3.2 transform rounded bg-white shadow transition duration-200 ease-in-out ${rec.isEarlyCheckOut ? 'translate-x-3.5' : 'translate-x-0'
-                            }`}
-                        />
-                      </button>
-                    </div>
                     
                     {isAbsent && (
                       <div className="flex flex-col gap-0.5 mt-1">
@@ -944,10 +924,6 @@ export default function AttendancePage() {
                     <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                       }`}>
                       Out-Time
-                    </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest text-center ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      Early Checkout
                     </th>
                     <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                       }`}>
@@ -1021,22 +997,6 @@ export default function AttendancePage() {
                             className={`border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
                               }`}
                           />
-                        </td>
-                        <td className={`text-center ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'}`}>
-                          <div className="flex items-center justify-center">
-                            <button
-                              onClick={() => handleEarlyToggle(person._id)}
-                              disabled={isAbsent}
-                              type="button"
-                              className={`relative inline-flex h-4 w-7.5 shrink-0 cursor-pointer rounded border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${rec.isEarlyCheckOut ? 'bg-rose-500' : 'bg-slate-200'
-                                } ${isAbsent ? 'opacity-30 cursor-not-allowed' : ''}`}
-                            >
-                              <span
-                                className={`pointer-events-none inline-block h-3.2 w-3.2 transform rounded bg-white shadow transition duration-200 ease-in-out ${rec.isEarlyCheckOut ? 'translate-x-3.5' : 'translate-x-0'
-                                  }`}
-                              />
-                            </button>
-                          </div>
                         </td>
                         <td className={isCompact ? 'px-4 py-2' : 'px-6 py-3.5'}>
                           <input

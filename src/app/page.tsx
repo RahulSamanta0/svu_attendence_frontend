@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 
-const API_URL = 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type Person = { _id: string; name: string; employeeId: string };
 type ReportRow = {
@@ -103,7 +103,7 @@ export default function AnalyticsDashboard() {
         return;
       }
       try {
-        await axios.get('http://localhost:3001/auth/me', {
+        await axios.get(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsAuthChecking(false);

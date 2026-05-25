@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { User } from 'lucide-react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 export default function UserProfile({ variant = 'sidebar' }: { variant?: 'sidebar' | 'header' }) {
   const [userName, setUserName] = useState<string>('Admin User');
   const [userRole, setUserRole] = useState<string>('Administrator');
@@ -26,7 +28,7 @@ export default function UserProfile({ variant = 'sidebar' }: { variant?: 'sideba
         }
 
         // If not in local storage or malformed, fetch from backend
-        const response = await axios.get('http://localhost:3001/auth/me', {
+        const response = await axios.get(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         

@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 const MENU_ITEMS = [
   { title: 'Analytics', href: '/', icon: LayoutDashboard },
   { title: 'Mark Attendance', href: '/attendance', icon: CheckSquare },
@@ -30,7 +32,7 @@ export default function Sidebar() {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        await axios.post('http://localhost:3001/auth/logout', {}, {
+        await axios.post(`${API_URL}/auth/logout`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }

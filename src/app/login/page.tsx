@@ -6,7 +6,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, AlertCircle, CheckCircle2, ArrowRight, Lock, User, Loader2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
-const API_URL = 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type Toast = {
   id: string;
