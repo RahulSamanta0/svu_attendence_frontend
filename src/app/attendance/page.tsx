@@ -87,6 +87,10 @@ export default function AttendancePage() {
   const selectedDateObj = new Date(Number(year), Number(month) - 1, Number(day));
   const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
 
+  const localToday = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+  const utcToday = new Date().toISOString().split('T')[0];
+  const isToday = date === localToday || date === utcToday;
+
   useEffect(() => {
     if (isWeekend && !isAuthChecking) {
       addToast('Weekend holiday: attendance is not recorded.', 'info');
@@ -139,6 +143,7 @@ export default function AttendancePage() {
   };
 
   const handleStatusChange = (personId: string, status: Status) => {
+    if (!isToday) return;
     setRecords(prev => {
       const current = prev[personId];
       if (status === 'Absent') {
@@ -157,6 +162,7 @@ export default function AttendancePage() {
   };
 
   const handleTimeChange = (personId: string, field: 'checkInTime' | 'checkOutTime', value: string) => {
+    if (!isToday) return;
     setRecords(prev => ({
       ...prev,
       [personId]: { ...prev[personId], [field]: value }
@@ -164,6 +170,7 @@ export default function AttendancePage() {
   };
 
   const handleEarlyToggle = (personId: string) => {
+    if (!isToday) return;
     setRecords(prev => ({
       ...prev,
       [personId]: { ...prev[personId], isEarlyCheckOut: !prev[personId]?.isEarlyCheckOut }
@@ -171,6 +178,7 @@ export default function AttendancePage() {
   };
 
   const handleLeaveReasonChange = (personId: string, value: string) => {
+    if (!isToday) return;
     setRecords(prev => ({
       ...prev,
       [personId]: { ...prev[personId], leaveReason: value }
@@ -178,6 +186,7 @@ export default function AttendancePage() {
   };
 
   const handleSave = async () => {
+    if (!isToday) return;
     setSaving(true);
     try {
       const recordsArray = Object.entries(records).map(([personId, data]) => ({
@@ -242,6 +251,7 @@ export default function AttendancePage() {
   };
 
   const markAllPresent = () => {
+    if (!isToday) return;
     const updated = { ...records };
     persons.forEach(p => {
       const current = updated[p._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: '' };
@@ -257,6 +267,7 @@ export default function AttendancePage() {
   };
 
   const markAllAbsent = () => {
+    if (!isToday) return;
     const updated = { ...records };
     persons.forEach(p => {
       updated[p._id] = {
@@ -272,6 +283,7 @@ export default function AttendancePage() {
   };
 
   const resetToOriginal = () => {
+    if (!isToday) return;
     setRecords(JSON.parse(JSON.stringify(originalRecords)));
     addToast('Restored original records for this date', 'info');
   };
@@ -407,8 +419,8 @@ export default function AttendancePage() {
 
           <button
             onClick={handleSave}
-            disabled={saving || loading || persons.length === 0 || isWeekend}
-            className={`flex items-center gap-1.5 font-bold text-xs py-2.5 px-5 rounded-sm transition-all shadow-sm ${hasUnsavedChanges
+            disabled={saving || loading || persons.length === 0 || isWeekend || !isToday}
+            className={`flex items-center gap-1.5 font-bold text-xs py-2.5 px-5 rounded-sm transition-all shadow-sm ${hasUnsavedChanges && isToday
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100 hover:shadow-sm hover:-translate-y-0.5'
               : 'bg-slate-800 hover:bg-slate-950 text-white shadow-sm'
               } disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none disabled:-translate-y-0 cursor-pointer`}
@@ -597,6 +609,18 @@ export default function AttendancePage() {
         </motion.div>
       </div>
 
+      {/* View-Only Indicator Banner for Past/Future Dates */}
+      {!isToday && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 bg-amber-50/80 border border-amber-200/80 text-amber-805 rounded-sm text-xs font-bold shadow-sm"
+        >
+          <AlertCircle size={15} className="text-amber-600 shrink-0" />
+          <span>View-Only Mode: Attendance edits are locked for past/future dates. You can only modify and save attendance for the present date (Today).</span>
+        </motion.div>
+      )}
+
       {/* Main interactive controls: Search, Filters, Sorters, Bulk Actions & Density */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -697,7 +721,8 @@ export default function AttendancePage() {
             <button
               onClick={markAllPresent}
               title="Mark All Present"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-[10px] font-bold border border-emerald-250 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all cursor-pointer"
+              disabled={!isToday}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-[10px] font-bold border border-emerald-250 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all disabled:opacity-40 disabled:hover:bg-emerald-50 cursor-pointer"
             >
               <CheckCircle2 size={12} /> Present
             </button>
@@ -705,7 +730,8 @@ export default function AttendancePage() {
             <button
               onClick={markAllAbsent}
               title="Mark All Absent"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-[10px] font-bold border border-rose-250 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all cursor-pointer"
+              disabled={!isToday}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-[10px] font-bold border border-rose-250 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all disabled:opacity-40 disabled:hover:bg-rose-50 cursor-pointer"
             >
               <XCircle size={12} /> Absent
             </button>
@@ -713,7 +739,7 @@ export default function AttendancePage() {
             <button
               onClick={resetToOriginal}
               title="Reset"
-              disabled={!hasUnsavedChanges}
+              disabled={!hasUnsavedChanges || !isToday}
               className="p-1.5 rounded-sm border border-slate-200 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all cursor-pointer"
             >
               <RotateCcw size={13} />
@@ -856,6 +882,7 @@ export default function AttendancePage() {
                         <button
                           key={st}
                           onClick={() => handleStatusChange(person._id, st)}
+                          disabled={!isToday}
                           type="button"
                           className={`flex-1 rounded-md font-bold transition-all flex items-center justify-center gap-0.5 cursor-pointer ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-[11px]'
                             } ${isActive
@@ -863,9 +890,9 @@ export default function AttendancePage() {
                                 ? 'bg-emerald-600 text-white shadow-sm'
                                 : st === 'Absent'
                                   ? 'bg-rose-600 text-white shadow-sm'
-                                  : 'bg-amber-500 text-white shadow-sm'
+                                  : 'bg-amber-50 text-white shadow-sm'
                               : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/50'
-                            }`}
+                            } disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed`}
                         >
                           {st === 'Present' && <CheckCircle2 size={isCompact ? 10 : 12} />}
                           {st === 'Absent' && <XCircle size={isCompact ? 10 : 12} />}
@@ -885,7 +912,7 @@ export default function AttendancePage() {
                           type="time"
                           value={rec.checkInTime}
                           onChange={(e) => handleTimeChange(person._id, 'checkInTime', e.target.value)}
-                          disabled={isAbsent}
+                          disabled={isAbsent || !isToday}
                           className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-semibold"
                         />
                       </div>
@@ -896,7 +923,7 @@ export default function AttendancePage() {
                           type="time"
                           value={rec.checkOutTime}
                           onChange={(e) => handleTimeChange(person._id, 'checkOutTime', e.target.value)}
-                          disabled={isAbsent}
+                          disabled={isAbsent || !isToday}
                           className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-semibold"
                         />
                       </div>
@@ -909,8 +936,9 @@ export default function AttendancePage() {
                           type="text"
                           value={rec.leaveReason}
                           onChange={(e) => handleLeaveReasonChange(person._id, e.target.value)}
-                          placeholder="E.g. Sick, Vacation"
-                          className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 font-semibold bg-rose-50/30"
+                          disabled={!isToday}
+                          placeholder={isToday ? "E.g. Sick, Vacation" : "-"}
+                          className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 font-semibold bg-rose-50/30 disabled:opacity-50"
                         />
                       </div>
                     )}
@@ -982,15 +1010,16 @@ export default function AttendancePage() {
                                 <button
                                   key={st}
                                   onClick={() => handleStatusChange(person._id, st)}
+                                  disabled={!isToday}
                                   className={`flex items-center gap-0.5 rounded-sm font-bold transition-all cursor-pointer ${isCompact ? 'px-2.5 py-1 text-[9px]' : 'px-4 py-1.5 text-xs'
                                     } ${isActive
                                       ? st === 'Present'
                                         ? 'bg-emerald-600 text-white shadow-sm'
                                         : st === 'Absent'
                                           ? 'bg-rose-600 text-white shadow-sm'
-                                          : 'bg-amber-500 text-white shadow-sm'
+                                          : 'bg-amber-50 text-white shadow-sm'
                                       : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/40'
-                                    }`}
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                   {st === 'Present' && <CheckCircle2 size={isCompact ? 10 : 12} />}
                                   {st === 'Absent' && <XCircle size={isCompact ? 10 : 12} />}
@@ -1006,7 +1035,7 @@ export default function AttendancePage() {
                             type="time"
                             value={rec.checkInTime}
                             onChange={(e) => handleTimeChange(person._id, 'checkInTime', e.target.value)}
-                            disabled={isAbsent}
+                            disabled={isAbsent || !isToday}
                             className={`border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
                               }`}
                           />
@@ -1016,7 +1045,7 @@ export default function AttendancePage() {
                             type="time"
                             value={rec.checkOutTime}
                             onChange={(e) => handleTimeChange(person._id, 'checkOutTime', e.target.value)}
-                            disabled={isAbsent}
+                            disabled={isAbsent || !isToday}
                             className={`border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
                               }`}
                           />
@@ -1026,8 +1055,8 @@ export default function AttendancePage() {
                             type="text"
                             value={rec.leaveReason}
                             onChange={(e) => handleLeaveReasonChange(person._id, e.target.value)}
-                            disabled={!isAbsent}
-                            placeholder={isAbsent ? "Reason" : ""}
+                            disabled={!isAbsent || !isToday}
+                            placeholder={isAbsent && isToday ? "Reason" : ""}
                             className={`w-full border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
                               } ${isAbsent ? 'bg-rose-50/30' : ''}`}
                           />

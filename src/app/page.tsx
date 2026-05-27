@@ -59,20 +59,10 @@ export default function AnalyticsDashboard() {
   const [showLeave, setShowLeave] = useState(true);
   const [showRoleFilter, setShowRoleFilter] = useState(false);
   const [activeRoles, setActiveRoles] = useState<string[]>([
-    'UI/UX Designer',
-    'Product Designer',
-    'Marketing Officer',
-    'Content Writer',
-    'UX Engineer',
     'Software Developer'
   ]);
 
   const allRoles = [
-    'UI/UX Designer',
-    'Product Designer',
-    'Marketing Officer',
-    'Content Writer',
-    'UX Engineer',
     'Software Developer'
   ];
 
@@ -163,19 +153,7 @@ export default function AnalyticsDashboard() {
 
   // Mock designation based on name character code hashes
   const getDesignation = (name: string) => {
-    const roles = [
-      'UI/UX Designer',
-      'Product Designer',
-      'Marketing Officer',
-      'Content Writer',
-      'UX Engineer',
-      'Software Developer'
-    ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return roles[Math.abs(hash) % roles.length];
+    return 'Software Developer';
   };
 
   const getAvatarGradient = (name: string) => {
