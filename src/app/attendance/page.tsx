@@ -147,8 +147,8 @@ export default function AttendancePage() {
           [personId]: { status, checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: current.leaveReason || '' }
         };
       }
-      const updatedCheckIn = current.checkInTime || (status === 'Late' ? '09:30' : '09:00');
-      const updatedCheckOut = current.checkOutTime || '17:00';
+      const updatedCheckIn = current.checkInTime || (status === 'Late' ? '12:00' : '11:30');
+      const updatedCheckOut = current.checkOutTime || '19:00';
       return {
         ...prev,
         [personId]: { ...current, status, checkInTime: updatedCheckIn, checkOutTime: updatedCheckOut }
@@ -226,12 +226,12 @@ export default function AttendancePage() {
 
   const getAvatarGradient = (name: string) => {
     const gradients = [
-      'from-indigo-500 to-purple-600 shadow-indigo-100',
-      'from-emerald-400 to-teal-600 shadow-emerald-100',
-      'from-rose-400 to-pink-600 shadow-rose-100',
-      'from-amber-400 to-orange-500 shadow-amber-100',
-      'from-sky-400 to-blue-600 shadow-sky-100',
-      'from-fuchsia-500 to-pink-600 shadow-pink-100'
+      'from-indigo-100/80 to-indigo-50 text-indigo-700 border-indigo-200/60 shadow-indigo-100/30',
+      'from-emerald-100/80 to-emerald-50 text-emerald-700 border-emerald-200/60 shadow-emerald-100/30',
+      'from-rose-100/80 to-rose-50 text-rose-700 border-rose-200/60 shadow-rose-100/30',
+      'from-amber-100/80 to-amber-50 text-amber-700 border-amber-200/60 shadow-amber-100/30',
+      'from-sky-100/80 to-sky-50 text-sky-700 border-sky-200/60 shadow-sky-100/30',
+      'from-fuchsia-100/80 to-fuchsia-50 text-fuchsia-700 border-fuchsia-200/60 shadow-fuchsia-100/30'
     ];
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -248,8 +248,8 @@ export default function AttendancePage() {
       updated[p._id] = {
         ...current,
         status: 'Present',
-        checkInTime: current.checkInTime || '09:00',
-        checkOutTime: current.checkOutTime || '17:00'
+        checkInTime: current.checkInTime || '11:30',
+        checkOutTime: current.checkOutTime || '19:00'
       };
     });
     setRecords(updated);
@@ -383,12 +383,13 @@ export default function AttendancePage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 p-5 rounded-md border border-slate-200/60 backdrop-blur-sm shadow-sm"
       >
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 rounded flex items-center gap-1 border border-indigo-100/50">
-              <Sparkles size={11} className="animate-pulse" /> SVU Staff Live Register
-            </span>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full flex items-center gap-1.5 w-fit text-indigo-700 font-bold text-[10px] tracking-wide">
+              <Sparkles size={11} className="animate-pulse" /> SVU StaffSync AttendPro
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live View</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">SVU Employee Attendance</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">SVU StaffSync AttendPro Attendance</h1>
           <p className="text-slate-500 text-xs mt-0.5">Configure states, log times, and manage attendance records for SVU employees.</p>
         </div>
 
@@ -423,26 +424,26 @@ export default function AttendancePage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-md border border-slate-200 shadow-sm"
+        className="flex flex-col md:flex-row items-center justify-between gap-5 bg-white/70 backdrop-blur-xl p-3 md:p-4 rounded-sm border border-white shadow-sm ring-1 ring-slate-200/50"
       >
         {/* Left: Date Selection Block */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
+        <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative shrink-0">
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className="pl-8 pr-2.5 py-2 border border-slate-200 rounded-sm text-slate-800 font-bold text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-slate-50/50 w-36"
+              className="pl-9 pr-3 py-2.5 bg-white border border-slate-200/60 rounded-sm text-slate-700 font-extrabold text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all shadow-sm w-36"
             />
-            <Calendar size={13} className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+            <Calendar size={14} className="absolute left-3 top-2.5 text-indigo-500 pointer-events-none" />
           </div>
 
-          <div className="flex gap-1">
+          <div className="flex gap-1.5 p-1 bg-slate-100/50 rounded-sm border border-slate-200/50">
             <button
               onClick={() => setDate(new Date().toISOString().split('T')[0])}
-              className={`px-3 py-2 text-[10px] font-bold rounded-sm border transition-all cursor-pointer ${date === new Date().toISOString().split('T')[0]
-                ? 'bg-slate-800 border-slate-850 text-white shadow-sm'
-                : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+              className={`px-3.5 py-1.5 text-[10.5px] font-bold rounded-sm transition-all cursor-pointer tracking-wide ${date === new Date().toISOString().split('T')[0]
+                ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/30 border border-transparent'
                 }`}
             >
               Today
@@ -453,7 +454,10 @@ export default function AttendancePage() {
                 yesterday.setDate(yesterday.getDate() - 1);
                 setDate(yesterday.toISOString().split('T')[0]);
               }}
-              className="px-3 py-2 text-[10px] font-bold bg-white border border-slate-200 text-slate-500 rounded-sm hover:text-slate-800 hover:bg-slate-50 transition-all cursor-pointer"
+              className={`px-3.5 py-1.5 text-[10.5px] font-bold rounded-sm transition-all cursor-pointer tracking-wide border border-transparent ${date === (new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0])
+                ? 'bg-white text-indigo-600 shadow-sm border-slate-200/50'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/30'
+                }`}
             >
               Yesterday
             </button>
@@ -461,30 +465,30 @@ export default function AttendancePage() {
         </div>
 
         {/* Right: Slim Horizontal Day Strip */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end flex-1 max-w-xl">
+        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end flex-1 max-w-xl">
           <button
             onClick={() => changeDate(-1)}
-            className="p-2 bg-slate-50 hover:bg-slate-100 rounded-sm text-slate-600 border border-slate-200/50 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+            className="p-2 bg-white hover:bg-slate-50 rounded-sm text-slate-500 border border-slate-200/60 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0 hover:text-indigo-600 hover:border-indigo-200"
           >
             <ChevronLeft size={16} />
           </button>
 
-          <div className="flex gap-1.5 flex-1 max-w-md overflow-x-auto hide-scrollbar px-1">
+          <div className="flex gap-1.5 flex-1 max-w-md overflow-x-auto hide-scrollbar px-1 py-1">
             {getDaysOfWeek(date).map((day) => {
               const isSelected = day.dateStr === date;
               return (
                 <button
                   key={day.dateStr}
                   onClick={() => setDate(day.dateStr)}
-                  className={`flex flex-col items-center justify-center py-1.5 px-1.2 rounded-sm transition-all cursor-pointer min-w-[48px] shrink-0 ${isSelected
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-100'
-                    : 'hover:bg-slate-50 border border-transparent hover:border-slate-200/50 text-slate-600'
+                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-sm transition-all cursor-pointer min-w-[50px] shrink-0 transform ${isSelected
+                    ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30 scale-105 border border-indigo-400'
+                    : 'bg-transparent hover:bg-white text-slate-500 border border-transparent hover:border-slate-200/60 hover:shadow-sm hover:scale-105 hover:text-indigo-600'
                     }`}
                 >
-                  <span className={`text-[8px] font-bold uppercase tracking-wider ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
+                  <span className={`text-[9px] font-extrabold uppercase tracking-widest ${isSelected ? 'text-indigo-100' : 'opacity-70'}`}>
                     {day.dayName}
                   </span>
-                  <span className="text-sm font-black tracking-tight leading-none mt-0.5">
+                  <span className={`text-base font-black tracking-tight leading-none mt-1 ${isSelected ? 'text-white' : ''}`}>
                     {day.dayNum}
                   </span>
                 </button>
@@ -494,7 +498,7 @@ export default function AttendancePage() {
 
           <button
             onClick={() => changeDate(1)}
-            className="p-2 bg-slate-50 hover:bg-slate-100 rounded-sm text-slate-600 border border-slate-200/50 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+            className="p-2 bg-white hover:bg-slate-50 rounded-sm text-slate-500 border border-slate-200/60 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0 hover:text-indigo-600 hover:border-indigo-200"
           >
             <ChevronRight size={16} />
           </button>
@@ -502,15 +506,16 @@ export default function AttendancePage() {
       </motion.div>
 
       {/* Statistics Cards Dashboard */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
-      >
-        <div className="bg-white p-4 rounded-sm border border-slate-200/60 shadow-sm flex items-center justify-between group hover:border-emerald-200 transition-all duration-300">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-emerald-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between group hover:border-emerald-400 hover:shadow-[0_15px_30px_rgba(16,185,129,0.08)] transition-all duration-300 cursor-pointer"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+            <div className="w-10 h-10 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <UserCheck size={18} />
             </div>
             <div>
@@ -521,11 +526,17 @@ export default function AttendancePage() {
           <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100">
             Active
           </span>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-4 rounded-sm border border-slate-200/60 shadow-sm flex items-center justify-between group hover:border-rose-200 transition-all duration-300">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-rose-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between group hover:border-rose-400 hover:shadow-[0_15px_30px_rgba(244,63,94,0.08)] transition-all duration-300 cursor-pointer"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+            <div className="w-10 h-10 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <UserX size={18} />
             </div>
             <div>
@@ -536,11 +547,17 @@ export default function AttendancePage() {
           <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded-md border border-rose-100">
             Out
           </span>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-4 rounded-sm border border-slate-200/60 shadow-sm flex items-center justify-between group hover:border-amber-200 transition-all duration-300">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-amber-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between group hover:border-amber-400 hover:shadow-[0_15px_30px_rgba(245,158,11,0.08)] transition-all duration-300 cursor-pointer"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+            <div className="w-10 h-10 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <Clock size={18} />
             </div>
             <div>
@@ -551,12 +568,18 @@ export default function AttendancePage() {
           <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-md border border-amber-100">
             Delayed
           </span>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-4 rounded-sm border border-slate-200/60 shadow-sm hover:border-indigo-200 transition-all duration-300 flex flex-col justify-center">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.26, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:border-indigo-400 hover:shadow-[0_15px_30px_rgba(99,102,241,0.08)] transition-all duration-300 flex flex-col justify-center cursor-pointer group"
+        >
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-sm bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <TrendingUp size={13} />
               </div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Session Rate</p>
@@ -571,8 +594,8 @@ export default function AttendancePage() {
               className="bg-indigo-600 h-full rounded"
             />
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Main interactive controls: Search, Filters, Sorters, Bulk Actions & Density */}
       <motion.div
@@ -809,8 +832,8 @@ export default function AttendancePage() {
                     }`} />
 
                   {/* Profile Header */}
-                  <div className="flex items-center gap-2.5">
-                    <div className={`rounded bg-gradient-to-tr ${getAvatarGradient(person.name)} flex items-center justify-center font-bold text-white shadow-sm shrink-0 uppercase ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
                       }`}>
                       {person.name.charAt(0)}
                     </div>
@@ -878,7 +901,7 @@ export default function AttendancePage() {
                         />
                       </div>
                     </div>
-                    
+
                     {isAbsent && (
                       <div className="flex flex-col gap-0.5 mt-1">
                         <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Reason for Leave</label>
@@ -939,9 +962,9 @@ export default function AttendancePage() {
 
                     return (
                       <tr key={person._id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className={`flex items-center gap-2.5 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'
+                        <td className={`flex items-center gap-3 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'
                           }`}>
-                          <div className={`rounded bg-gradient-to-tr ${getAvatarGradient(person.name)} flex items-center justify-center font-bold text-white shadow-sm shrink-0 uppercase ${isCompact ? 'w-7.5 h-7.5 text-xs' : 'w-9 h-9 text-sm'
+                          <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)} ${isCompact ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
                             }`}>
                             {person.name.charAt(0)}
                           </div>

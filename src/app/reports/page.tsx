@@ -139,7 +139,7 @@ export default function ReportsPage() {
       }
 
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'SVU System';
+      workbook.creator = 'SVU StaffSync AttendPro';
       workbook.created = new Date();
       
       const worksheet = workbook.addWorksheet('Attendance Report', {
@@ -225,12 +225,12 @@ export default function ReportsPage() {
   // Avatar CSS gradients based on character hashes
   const getAvatarGradient = (name: string) => {
     const gradients = [
-      'from-indigo-500 to-purple-600 shadow-indigo-100',
-      'from-emerald-400 to-teal-600 shadow-emerald-100',
-      'from-rose-400 to-pink-600 shadow-rose-100',
-      'from-amber-400 to-orange-500 shadow-amber-100',
-      'from-sky-400 to-blue-600 shadow-sky-100',
-      'from-fuchsia-500 to-pink-600 shadow-pink-100'
+      'from-indigo-100/80 to-indigo-50 text-indigo-700 border-indigo-200/60 shadow-indigo-100/30',
+      'from-emerald-100/80 to-emerald-50 text-emerald-700 border-emerald-200/60 shadow-emerald-100/30',
+      'from-rose-100/80 to-rose-50 text-rose-700 border-rose-200/60 shadow-rose-100/30',
+      'from-amber-100/80 to-amber-50 text-amber-700 border-amber-200/60 shadow-amber-100/30',
+      'from-sky-100/80 to-sky-50 text-sky-700 border-sky-200/60 shadow-sky-100/30',
+      'from-fuchsia-100/80 to-fuchsia-50 text-fuchsia-700 border-fuchsia-200/60 shadow-fuchsia-100/30'
     ];
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -301,10 +301,10 @@ export default function ReportsPage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 p-5 rounded-md border border-slate-200/60 backdrop-blur-sm shadow-sm"
       >
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 rounded flex items-center gap-1 border border-indigo-100/50">
-              <Sparkles size={11} className="animate-pulse" /> SVU Data Ledger
-            </span>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full flex items-center gap-1.5 w-fit text-indigo-700 font-bold text-[10px] tracking-wide">
+              <Sparkles size={11} className="animate-pulse" /> SVU StaffSync AttendPro
+            </div>
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">Attendance Ledger & Reports</h1>
           <p className="text-slate-500 text-xs mt-0.5">Query ledger reports, filter by ranges, and download verified staff logs.</p>
@@ -324,58 +324,62 @@ export default function ReportsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-white p-4.5 rounded-md border border-slate-200 shadow-sm flex flex-col gap-4"
+        className="bg-white/70 backdrop-blur-xl p-5 md:p-6 rounded-sm border border-white shadow-[0_8px_30px_rgb(0,0,0,0.02)] ring-1 ring-slate-200/50 flex flex-col gap-5"
       >
         {/* Preset Tabs (Week, Month, Year, Custom) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
-          <div className="flex items-center gap-1.5 p-0.5 bg-slate-100 rounded-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100/80">
+          <div className="flex gap-1 p-1 bg-slate-100/80 rounded-sm border border-slate-200/40 shrink-0">
             <button
+              type="button"
               onClick={() => applyPreset('week')}
-              className={`px-3.5 py-1.5 rounded-sm text-xs font-bold transition-all cursor-pointer ${preset === 'week'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-700'
+              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'week'
+                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
                 }`}
             >
               This Week
             </button>
             <button
+              type="button"
               onClick={() => applyPreset('month')}
-              className={`px-3.5 py-1.5 rounded-sm text-xs font-bold transition-all cursor-pointer ${preset === 'month'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-700'
+              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'month'
+                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
                 }`}
             >
               This Month
             </button>
             <button
+              type="button"
               onClick={() => applyPreset('year')}
-              className={`px-3.5 py-1.5 rounded-sm text-xs font-bold transition-all cursor-pointer ${preset === 'year'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-700'
+              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'year'
+                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
                 }`}
             >
               This Year
             </button>
             <button
+              type="button"
               onClick={() => applyPreset('custom')}
-              className={`px-3.5 py-1.5 rounded-sm text-xs font-bold transition-all cursor-pointer ${preset === 'custom'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-700'
+              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'custom'
+                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
                 }`}
             >
               Custom Range
             </button>
           </div>
 
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border border-slate-200/50 px-2.5 py-1 rounded-sm">
+          <span className="text-[9px] font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50/60 border border-indigo-100/80 px-3 py-1 rounded-sm shadow-sm">
             Scope: {preset === 'custom' ? 'Custom Range Selection' : `${preset}-wise scope`}
           </span>
         </div>
 
         {/* Date picking forms (shows custom picks or current display range) */}
-        <form onSubmit={handleFilterSubmit} className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1 w-full relative">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.2">Start Date</label>
+        <form onSubmit={handleFilterSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+          <div className="w-full relative">
+            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Start Date</label>
             <div className="relative">
               <input
                 type="date"
@@ -384,14 +388,14 @@ export default function ReportsPage() {
                   setStartDate(e.target.value);
                   setPreset('custom');
                 }}
-                className="w-full bg-slate-50/50 border border-slate-200 rounded-sm pl-9 pr-3 py-2 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                className="w-full bg-white border border-slate-200/60 rounded-sm pl-9 pr-3 py-2.5 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition-all shadow-sm"
               />
-              <Calendar size={13} className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+              <Calendar size={14} className="absolute left-3 top-3 text-indigo-500 pointer-events-none" />
             </div>
           </div>
 
-          <div className="flex-1 w-full relative">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.2">End Date</label>
+          <div className="w-full relative">
+            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">End Date</label>
             <div className="relative">
               <input
                 type="date"
@@ -400,18 +404,18 @@ export default function ReportsPage() {
                   setEndDate(e.target.value);
                   setPreset('custom');
                 }}
-                className="w-full bg-slate-50/50 border border-slate-200 rounded-sm pl-9 pr-3 py-2 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                className="w-full bg-white border border-slate-200/60 rounded-sm pl-9 pr-3 py-2.5 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition-all shadow-sm"
               />
-              <Calendar size={13} className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+              <Calendar size={14} className="absolute left-3 top-3 text-indigo-500 pointer-events-none" />
             </div>
           </div>
 
-          <div className="flex-grow w-full relative">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.2">Attendance Status</label>
+          <div className="w-full relative">
+            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Attendance Status</label>
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="w-full bg-slate-50/50 border border-slate-200 rounded-sm px-3 py-2.2 text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
+              className="w-full bg-white border border-slate-200/60 rounded-sm px-3 py-2.5 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition-all shadow-sm cursor-pointer"
             >
               <option value="">All Statuses</option>
               <option value="Present">Present</option>
@@ -422,7 +426,7 @@ export default function ReportsPage() {
 
           <button
             type="submit"
-            className="w-full sm:w-auto bg-indigo-50 hover:bg-indigo-150 text-indigo-755 border border-indigo-200/50 font-bold py-2.2 px-6 rounded-sm text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold py-2.5 px-6 rounded-sm text-xs transition-all shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer shrink-0 border border-indigo-600"
           >
             <Search size={14} /> Apply Filter
           </button>
@@ -430,67 +434,92 @@ export default function ReportsPage() {
       </motion.div>
 
       {/* Reports Summary KPI Analytics Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 lg:grid-cols-5 gap-4"
-      >
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total records */}
-        <div className="bg-white p-3.5 rounded-sm border border-slate-200/60 shadow-sm flex items-center gap-3">
-          <div className="w-8 h-8 rounded-sm bg-slate-50 text-slate-500 flex items-center justify-center shrink-0">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-white p-4 rounded-sm border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-indigo-400 hover:shadow-[0_15px_30px_rgba(99,102,241,0.08)] transition-all duration-300 cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-sm bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
             <FileSpreadsheet size={15} />
           </div>
           <div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Logs</p>
             <p className="text-base font-black text-slate-800">{totalRecords}</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Present days */}
-        <div className="bg-white p-3.5 rounded-sm border border-slate-200/60 shadow-sm flex items-center gap-3">
-          <div className="w-8 h-8 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.13, ease: "easeOut" }}
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-white p-4 rounded-sm border border-emerald-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-emerald-400 hover:shadow-[0_15px_30px_rgba(16,185,129,0.08)] transition-all duration-300 cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
             <UserCheck size={15} />
           </div>
           <div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Present Days</p>
             <p className="text-base font-black text-slate-800">{totalPresent}</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Absent days */}
-        <div className="bg-white p-3.5 rounded-sm border border-slate-200/60 shadow-sm flex items-center gap-3">
-          <div className="w-8 h-8 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.18, ease: "easeOut" }}
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-white p-4 rounded-sm border border-rose-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-rose-400 hover:shadow-[0_15px_30px_rgba(244,63,94,0.08)] transition-all duration-300 cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
             <UserX size={15} />
           </div>
           <div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Absent Days</p>
             <p className="text-base font-black text-slate-800">{totalAbsent}</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Late days */}
-        <div className="bg-white p-3.5 rounded-sm border border-slate-200/60 shadow-sm flex items-center gap-3">
-          <div className="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.23, ease: "easeOut" }}
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-white p-4 rounded-sm border border-amber-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-amber-400 hover:shadow-[0_15px_30px_rgba(245,158,11,0.08)] transition-all duration-300 cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
             <Clock size={15} />
           </div>
           <div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Late Days</p>
             <p className="text-base font-black text-slate-800">{totalLate}</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Early Checkout days */}
-        <div className="bg-white p-3.5 rounded-sm border border-slate-200/60 shadow-sm flex items-center gap-3">
-          <div className="w-8 h-8 rounded-sm bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.28, ease: "easeOut" }}
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-white p-4 rounded-sm border border-violet-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-violet-400 hover:shadow-[0_15px_30px_rgba(139,92,246,0.08)] transition-all duration-300 cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-sm bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
             <TrendingUp size={15} />
           </div>
           <div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Early Departures</p>
             <p className="text-base font-black text-slate-800">{totalEarlyOut}</p>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Main Ledger Table Area */}
       <motion.div
@@ -609,9 +638,8 @@ export default function ReportsPage() {
                             }`}>
                             {safeDateStr}
                           </td>
-                          <td className={`flex items-center gap-2.5 ${isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'
-                            }`}>
-                            <div className={`rounded bg-gradient-to-tr ${getAvatarGradient(row.name)} flex items-center justify-center font-bold text-white shadow-sm shrink-0 uppercase ${isCompact ? 'w-7.5 h-7.5 text-[11px]' : 'w-9 h-9 text-xs'
+                          <td className={`flex items-center gap-3 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'}`}>
+                            <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(row.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
                               }`}>
                               {row.name.charAt(0)}
                             </div>

@@ -75,7 +75,7 @@ export default function Sidebar() {
               exit={{ opacity: 0, width: 0 }}
               className="ml-3 overflow-hidden whitespace-nowrap"
             >
-              <h1 className="text-lg font-black text-slate-900 tracking-tight">AttenAdmin</h1>
+              <h1 className="text-[13px] font-black text-slate-900 tracking-tight">SVU StaffSync AttendPro</h1>
             </motion.div>
           )}
         </AnimatePresence>

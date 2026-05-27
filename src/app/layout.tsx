@@ -12,11 +12,13 @@ import LogoutButton from '@/components/LogoutButton';
 import UserProfile from '@/components/UserProfile';
 import Sidebar from '@/components/Sidebar';
 
+import GlobalLoader from '@/components/GlobalLoader';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Attendance Admin Portal',
-  description: 'Professional SVU Employee Attendance & Roster Directory Portal',
+  description: 'Professional SVU StaffSync AttendPro Portal',
 };
 
 export default function RootLayout({
@@ -27,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-slate-50/40 text-slate-800 min-h-screen flex flex-col md:flex-row max-md:pb-16`}>
+        <GlobalLoader />
 
         {/* Modern Collapsible Sidebar */}
         <Sidebar />

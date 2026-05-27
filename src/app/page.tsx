@@ -180,12 +180,12 @@ export default function AnalyticsDashboard() {
 
   const getAvatarGradient = (name: string) => {
     const gradients = [
-      'from-rose-400 to-orange-500 shadow-orange-100',
-      'from-emerald-400 to-teal-600 shadow-emerald-100',
-      'from-sky-400 to-blue-600 shadow-sky-100',
-      'from-amber-400 to-yellow-500 shadow-amber-100',
-      'from-indigo-500 to-purple-600 shadow-indigo-100',
-      'from-fuchsia-400 to-pink-600 shadow-pink-100'
+      'from-indigo-100/80 to-indigo-50 text-indigo-700 border-indigo-200/60 shadow-indigo-100/30',
+      'from-emerald-100/80 to-emerald-50 text-emerald-700 border-emerald-200/60 shadow-emerald-100/30',
+      'from-rose-100/80 to-rose-50 text-rose-700 border-rose-200/60 shadow-rose-100/30',
+      'from-amber-100/80 to-amber-50 text-amber-700 border-amber-200/60 shadow-amber-100/30',
+      'from-sky-100/80 to-sky-50 text-sky-700 border-sky-200/60 shadow-sky-100/30',
+      'from-fuchsia-100/80 to-fuchsia-50 text-fuchsia-700 border-fuchsia-200/60 shadow-fuchsia-100/30'
     ];
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -320,22 +320,22 @@ export default function AnalyticsDashboard() {
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Employee Attendance</h1>
           <p className="text-slate-400 text-xs mt-0.5 font-medium">Analyse attendance records of employee</p>
         </div>
-        <button
-          onClick={handleExcelExport}
-          className="flex items-center gap-1.5 px-4.5 py-2.2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-sm text-xs font-bold shadow-sm shadow-indigo-150 hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all cursor-pointer"
-        >
-          <Download size={13} /> Download
-        </button>
       </div>
 
       {/* KPI Cards Section matching Sage UI exactly */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 
         {/* Card 1: Present Today */}
-        <div className="bg-white p-5 rounded-md border border-slate-200/60 shadow-sm flex flex-col justify-between min-h-[120px] hover:border-slate-350 transition-all">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-emerald-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-emerald-400 hover:shadow-[0_15px_30px_rgba(16,185,129,0.08)] transition-all duration-300 cursor-pointer"
+        >
           <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-5.5 h-5.5 rounded bg-slate-100 flex items-center justify-center text-slate-800 shrink-0">
-              <CheckCircle2 size={12} />
+            <div className="w-7 h-7 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <CheckCircle2 size={14} />
             </div>
             <span>Present Today</span>
           </div>
@@ -345,13 +345,19 @@ export default function AnalyticsDashboard() {
               {totalEmployees - presentToday} People Remaining
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Card 2: Late Entry */}
-        <div className="bg-white p-5 rounded-md border border-slate-200/60 shadow-sm flex flex-col justify-between min-h-[120px] hover:border-slate-350 transition-all">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-amber-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-amber-400 hover:shadow-[0_15px_30px_rgba(245,158,11,0.08)] transition-all duration-300 cursor-pointer"
+        >
           <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-5.5 h-5.5 rounded bg-slate-100 flex items-center justify-center text-slate-800 shrink-0">
-              <Clock size={12} />
+            <div className="w-7 h-7 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <Clock size={14} />
             </div>
             <span>Late Entry</span>
           </div>
@@ -361,13 +367,19 @@ export default function AnalyticsDashboard() {
               {presentToday - lateToday} People are on Time
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Card 3: On Leave */}
-        <div className="bg-white p-5 rounded-md border border-slate-200/60 shadow-sm flex flex-col justify-between min-h-[120px] hover:border-slate-350 transition-all">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-indigo-400 hover:shadow-[0_15px_30px_rgba(99,102,241,0.08)] transition-all duration-300 cursor-pointer"
+        >
           <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-5.5 h-5.5 rounded bg-slate-100 flex items-center justify-center text-slate-800 shrink-0">
-              <Sparkles size={12} />
+            <div className="w-7 h-7 rounded-sm bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <Sparkles size={14} />
             </div>
             <span>On Leave</span>
           </div>
@@ -375,13 +387,19 @@ export default function AnalyticsDashboard() {
             <h3 className="text-2xl font-black text-slate-800 leading-none">0</h3>
             <p className="text-[10px] text-slate-400 font-bold mt-1.5">Approved Leave</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Card 4: Absent */}
-        <div className="bg-white p-5 rounded-md border border-slate-200/60 shadow-sm flex flex-col justify-between min-h-[120px] hover:border-slate-350 transition-all">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.26, ease: "easeOut" }}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          className="bg-white p-5 rounded-sm border border-rose-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-rose-400 hover:shadow-[0_15px_30px_rgba(244,63,94,0.08)] transition-all duration-300 cursor-pointer"
+        >
           <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-5.5 h-5.5 rounded bg-slate-100 flex items-center justify-center text-slate-800 shrink-0">
-              <UserX size={12} />
+            <div className="w-7 h-7 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <UserX size={14} />
             </div>
             <span>Absent</span>
           </div>
@@ -389,7 +407,7 @@ export default function AnalyticsDashboard() {
             <h3 className="text-2xl font-black text-slate-800 leading-none">{absentToday}</h3>
             <p className="text-[10px] text-slate-400 font-bold mt-1.5">Without Informing</p>
           </div>
-        </div>
+        </motion.div>
 
       </div>
 
@@ -588,11 +606,10 @@ export default function AnalyticsDashboard() {
                     <tr key={person._id} className="hover:bg-slate-50/20 transition-colors">
 
                       {/* Employee column with avatar, name, and designation */}
-                      <td className="px-6 py-4 flex items-center gap-3">
-                        <div className="w-9.5 h-9.5 rounded bg-gradient-to-tr from-amber-500 to-indigo-650 flex items-center justify-center font-black text-xs text-white shadow-sm uppercase shrink-0" style={{ backgroundImage: `linear-gradient(to top right, ${getAvatarGradient(person.name)})` }}>
-                          <div className={`w-9.5 h-9.5 rounded bg-gradient-to-tr ${getAvatarGradient(person.name)} flex items-center justify-center font-black text-xs text-white shadow-sm uppercase shrink-0`}>
-                            {person.name.charAt(0)}
-                          </div>
+                      <td className="px-5 py-3.5 flex items-center gap-3">
+                        {/* Improved modern avatar with circle mask */}
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)}`}>
+                          {person.name.charAt(0)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className="font-bold text-slate-800 block truncate text-xs" title={person.name}>

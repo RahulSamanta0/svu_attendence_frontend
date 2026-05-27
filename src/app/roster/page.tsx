@@ -101,12 +101,12 @@ export default function RosterPage() {
   // Unique avatar gradients based on first character hashes
   const getAvatarGradient = (name: string) => {
     const gradients = [
-      'from-indigo-500 to-purple-600 shadow-indigo-100',
-      'from-emerald-400 to-teal-600 shadow-emerald-100',
-      'from-rose-400 to-pink-600 shadow-rose-100',
-      'from-amber-400 to-orange-500 shadow-amber-100',
-      'from-sky-400 to-blue-600 shadow-sky-100',
-      'from-fuchsia-500 to-pink-600 shadow-pink-100'
+      'from-indigo-100/80 to-indigo-50 text-indigo-700 border-indigo-200/60 shadow-indigo-100/30',
+      'from-emerald-100/80 to-emerald-50 text-emerald-700 border-emerald-200/60 shadow-emerald-100/30',
+      'from-rose-100/80 to-rose-50 text-rose-700 border-rose-200/60 shadow-rose-100/30',
+      'from-amber-100/80 to-amber-50 text-amber-700 border-amber-200/60 shadow-amber-100/30',
+      'from-sky-100/80 to-sky-50 text-sky-700 border-sky-200/60 shadow-sky-100/30',
+      'from-fuchsia-100/80 to-fuchsia-50 text-fuchsia-700 border-fuchsia-200/60 shadow-fuchsia-100/30'
     ];
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -204,12 +204,13 @@ export default function RosterPage() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 p-5 rounded-md border border-slate-200/60 backdrop-blur-sm shadow-sm"
       >
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 rounded flex items-center gap-1 border border-indigo-100/50">
-              <Sparkles size={11} className="animate-pulse" /> SVU Staff Portal
-            </span>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full flex items-center gap-1.5 w-fit">
+              <Sparkles size={11} className="animate-pulse" /> SVU StaffSync AttendPro
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Workspace</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">SVU Employee Directory</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">SVU StaffSync AttendPro Directory</h1>
           <p className="text-slate-500 text-xs mt-0.5">Register new staff members and manage Sri Venkateswara University roster profiles.</p>
         </div>
 
@@ -430,8 +431,8 @@ export default function RosterPage() {
                       className={`bg-white rounded-sm border border-slate-200/80 hover:border-indigo-200 transition-all flex items-center gap-3 relative overflow-hidden ${isCompact ? 'p-3' : 'p-4.5'
                         }`}
                     >
-                      {/* Custom profile gradient icon based on name */}
-                      <div className={`rounded bg-gradient-to-tr ${getAvatarGradient(person.name)} flex items-center justify-center font-extrabold text-white shadow-sm shrink-0 uppercase ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-11 h-11 text-base'
+                      <div className="flex items-center gap-3">
+                      <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-11 h-11 text-base'
                         }`}>
                         {person.name.charAt(0)}
                       </div>
@@ -444,6 +445,7 @@ export default function RosterPage() {
                         <span className="text-[10px] font-mono font-medium text-indigo-600 block mt-0.5">
                           ID: {person.employeeId}
                         </span>
+                      </div>
                       </div>
                     </motion.div>
                   );
@@ -476,16 +478,15 @@ export default function RosterPage() {
                         const isCompact = cardSize === 'compact';
                         return (
                           <tr key={p._id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className={`flex items-center gap-3 ${isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'
+                            <td className={`flex items-center gap-3 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'
                               }`}>
-                              <div className={`rounded bg-gradient-to-tr ${getAvatarGradient(p.name)} flex items-center justify-center font-bold text-white shadow-sm shrink-0 uppercase ${isCompact ? 'w-7.5 h-7.5 text-[11px]' : 'w-9 h-9 text-sm'
+                              <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(p.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
                                 }`}>
                                 {p.name.charAt(0)}
                               </div>
                               <div>
-                                <span className={`font-bold text-slate-800 block leading-tight ${isCompact ? 'text-xs' : 'text-sm'
-                                  }`}>{p.name}</span>
-                                <span className="text-[9px] font-mono text-slate-400 block mt-0.5">SVU Staff Registry</span>
+                                <span className="text-xs font-bold text-slate-900 leading-none">{p.name}</span>
+                                <span className="text-[9px] font-mono text-slate-400 block mt-0.5">SVU StaffSync AttendPro Registry</span>
                               </div>
                             </td>
                             <td className={`font-mono text-indigo-650 font-bold text-xs text-right ${isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'
