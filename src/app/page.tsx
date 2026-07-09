@@ -6,6 +6,7 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { utils, writeFile } from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '@/components/PageHeader';
 import {
   Users,
   UserCheck,
@@ -44,9 +45,52 @@ type Toast = {
   type: 'success' | 'error' | 'info';
 };
 
+// Seamless loop animated starry layer component using Framer Motion
+function StarLayer({ duration, size, count }: { duration: number; size: number; count: number }) {
+  const [shadows, setShadows] = useState('');
+
+  useEffect(() => {
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+      const x = Math.floor(Math.random() * 2000);
+      const y = Math.floor(Math.random() * 2000);
+      arr.push(`${x}px ${y}px #fff`);
+    }
+    setShadows(arr.join(', '));
+  }, [count]);
+
+  if (!shadows) return null;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <motion.div
+        animate={{ y: [0, -2000] }}
+        transition={{ ease: "linear", duration, repeat: Infinity }}
+        className="absolute bg-transparent"
+        style={{
+          width: size,
+          height: size,
+          boxShadow: shadows,
+        }}
+      >
+        {/* Duplicate layer offset by 2000px for seamless infinite loop */}
+        <div
+          className="absolute bg-transparent"
+          style={{
+            width: size,
+            height: size,
+            boxShadow: shadows,
+            top: 2000,
+            left: 0,
+          }}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
 export default function AnalyticsDashboard() {
   const router = useRouter();
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [persons, setPersons] = useState<Person[]>([]);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, ReportRow>>({});
   const [loading, setLoading] = useState(true);
@@ -86,28 +130,8 @@ export default function AnalyticsDashboard() {
   const weekDates = getWeekDates();
 
   useEffect(() => {
-    const validateSession = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.replace('/login');
-        return;
-      }
-      try {
-        await axios.get(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setIsAuthChecking(false);
-        fetchDashboardData();
-      } catch (err) {
-        console.error('Session invalid', err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router.replace('/login');
-      }
-    };
-    
-    validateSession();
-  }, [router]);
+    fetchDashboardData();
+  }, []);
 
   const addToast = (message: string, type: 'success' | 'error' | 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -256,16 +280,15 @@ export default function AnalyticsDashboard() {
     }
   };
 
-  if (isAuthChecking) {
-    return (
-      <div className="fixed inset-0 z-[200] bg-slate-50 flex items-center justify-center">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Authenticating...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800 relative">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800 relative z-10">
+
+      {/* Sky Starry Animated Background */}
+      <div className="absolute inset-0 -m-4 md:-m-8 -z-10 overflow-hidden pointer-events-none sky-stars-container">
+        <StarLayer duration={80} size={1} count={120} />
+        <StarLayer duration={140} size={1.5} count={80} />
+        <StarLayer duration={200} size={2.5} count={40} />
+      </div>
 
       {/* Toast Notification Container */}
       <div className="fixed top-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
@@ -292,98 +315,276 @@ export default function AnalyticsDashboard() {
         </AnimatePresence>
       </div>
 
-      {/* Dashboard Top Title Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Employee Attendance</h1>
-          <p className="text-slate-400 text-xs mt-0.5 font-medium">Analyse attendance records of employee</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Employee Attendance"
+        subtitle="Analyse attendance records of employee"
+        variant="sky"
+      />
 
       {/* KPI Cards Section matching Sage UI exactly */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 
-        {/* Card 1: Present Today */}
+        {/* Card 1: Present Today (Sage/Olive Green Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-emerald-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-emerald-400 hover:shadow-[0_15px_30px_rgba(16,185,129,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#8FA47F] to-[#6B805B] p-5 rounded-2xl border border-white/10 shadow-[0_12px_24px_-4px_rgba(107,128,91,0.25)] flex flex-col justify-between min-h-[120px] relative overflow-hidden group hover:shadow-[0_18px_36px_-6px_rgba(107,128,91,0.38)] transition-all duration-300 cursor-pointer"
         >
-          <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-7 h-7 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.12"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.07"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.15"
+            />
+          </svg>
+
+          <div className="flex items-center gap-2.5 text-white/90 text-xs font-bold relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/10">
               <CheckCircle2 size={14} />
             </div>
             <span>Present Today</span>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 leading-none">{presentToday}</h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-1.5">
+          <div className="mt-4 relative z-10">
+            <h3 className="text-2xl font-black text-white leading-none">{presentToday}</h3>
+            <p className="text-[10px] text-emerald-100/80 font-bold mt-1.5">
               {totalEmployees - presentToday} People Remaining
             </p>
           </div>
         </motion.div>
 
-        {/* Card 2: Late Entry */}
+        {/* Card 2: Late Entry (Honey Amber/Orange Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-amber-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-amber-400 hover:shadow-[0_15px_30px_rgba(245,158,11,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#F4A236] to-[#D67A18] p-5 rounded-2xl border border-white/10 shadow-[0_12px_24px_-4px_rgba(214,122,24,0.25)] flex flex-col justify-between min-h-[120px] relative overflow-hidden group hover:shadow-[0_18px_36px_-6px_rgba(214,122,24,0.38)] transition-all duration-300 cursor-pointer"
         >
-          <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-7 h-7 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.12"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.07"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.15"
+            />
+          </svg>
+
+          <div className="flex items-center gap-2.5 text-white/90 text-xs font-bold relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/10">
               <Clock size={14} />
             </div>
             <span>Late Entry</span>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 leading-none">{lateToday}</h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-1.5">
+          <div className="mt-4 relative z-10">
+            <h3 className="text-2xl font-black text-white leading-none">{lateToday}</h3>
+            <p className="text-[10px] text-amber-100/80 font-bold mt-1.5">
               {presentToday - lateToday} People are on Time
             </p>
           </div>
         </motion.div>
 
-        {/* Card 3: On Leave */}
+        {/* Card 3: On Leave (Speckled Sand/Beige Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-indigo-400 hover:shadow-[0_15px_30px_rgba(99,102,241,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#F2EDE4] to-[#DDD5C7] p-5 rounded-2xl border border-black/5 shadow-[0_12px_24px_-4px_rgba(180,170,150,0.2)] flex flex-col justify-between min-h-[120px] relative overflow-hidden group hover:shadow-[0_18px_36px_-6px_rgba(180,170,150,0.32)] transition-all duration-300 cursor-pointer"
         >
-          <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-7 h-7 rounded-sm bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#000000"
+              opacity="0.03"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#000000"
+              opacity="0.02"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#000000"
+              strokeWidth="0.5"
+              opacity="0.04"
+            />
+          </svg>
+
+          <div className="flex items-center gap-2.5 text-[#5A5043] text-xs font-bold relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-[#DDD5C7]/50 text-[#5A5043] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-black/5">
               <Sparkles size={14} />
             </div>
             <span>On Leave</span>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 leading-none">0</h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-1.5">Approved Leave</p>
+          <div className="mt-4 relative z-10">
+            <h3 className="text-2xl font-black text-[#5A5043] leading-none">0</h3>
+            <p className="text-[10px] text-[#8C806F] font-bold mt-1.5">Approved Leave</p>
           </div>
         </motion.div>
 
-        {/* Card 4: Absent */}
+        {/* Card 4: Absent (Soft Pink/Rose Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.26, ease: "easeOut" }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-rose-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] group hover:border-rose-400 hover:shadow-[0_15px_30px_rgba(244,63,94,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#E5B5B8] to-[#C9979A] p-5 rounded-2xl border border-white/10 shadow-[0_12px_24px_-4px_rgba(201,150,154,0.25)] flex flex-col justify-between min-h-[120px] relative overflow-hidden group hover:shadow-[0_18px_36px_-6px_rgba(201,150,154,0.38)] transition-all duration-300 cursor-pointer"
         >
-          <div className="flex items-center gap-2.5 text-slate-500 text-xs font-bold">
-            <div className="w-7 h-7 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.16"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.09"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.2"
+            />
+          </svg>
+
+          <div className="flex items-center gap-2.5 text-[#7A494B] text-xs font-bold relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-white/30 text-[#7A494B] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/15">
               <UserX size={14} />
             </div>
             <span>Absent</span>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-black text-slate-800 leading-none">{absentToday}</h3>
-            <p className="text-[10px] text-slate-400 font-bold mt-1.5">Without Informing</p>
+          <div className="mt-4 relative z-10">
+            <h3 className="text-2xl font-black text-[#7A494B] leading-none">{absentToday}</h3>
+            <p className="text-[10px] text-[#9D686B] font-bold mt-1.5">Without Informing</p>
           </div>
         </motion.div>
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '@/components/PageHeader';
 import {
   UserPlus,
   User,
@@ -32,7 +33,6 @@ type Toast = {
 
 export default function RosterPage() {
   const router = useRouter();
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -48,13 +48,8 @@ export default function RosterPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      router.replace('/login');
-    } else {
-      setIsAuthChecking(false);
-      fetchPersons();
-    }
-  }, [router]);
+    fetchPersons();
+  }, []);
 
   const addToast = (message: string, type: 'success' | 'error' | 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -161,14 +156,6 @@ export default function RosterPage() {
     }
   };
 
-  if (isAuthChecking) {
-    return (
-      <div className="fixed inset-0 z-[200] bg-slate-50 flex items-center justify-center">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Authenticating...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800">
 
@@ -197,27 +184,16 @@ export default function RosterPage() {
         </AnimatePresence>
       </div>
 
-      {/* Modern Page Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 p-5 rounded-md border border-slate-200/60 backdrop-blur-sm shadow-sm"
-      >
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full flex items-center gap-1.5 w-fit">
-              <Sparkles size={11} className="animate-pulse" /> SVU StaffSync AttendPro
-            </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Workspace</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">SVU StaffSync AttendPro Directory</h1>
-          <p className="text-slate-500 text-xs mt-0.5">Register new staff members and manage Sri Venkateswara University roster profiles.</p>
-        </div>
-
-        <span className="px-3.5 py-1.5 bg-indigo-50 border border-indigo-150 text-indigo-700 text-xs font-bold rounded-sm shadow-sm">
-          {persons.length} Employees Registered
-        </span>
-      </motion.div>
+      <PageHeader
+        title="SVU StaffSync AttendPro Directory"
+        subtitle="Register new staff members and manage Sri Venkateswara University roster profiles."
+        badge="Workspace"
+        actions={
+          <span className="px-3.5 py-1.5 bg-indigo-50 border border-indigo-150 text-indigo-700 text-xs font-bold rounded-sm shadow-sm">
+            {persons.length} Employees Registered
+          </span>
+        }
+      />
 
       {/* Two-Column Workspace Layout */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">

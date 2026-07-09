@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '@/components/PageHeader';
 import {
   Download,
   Search,
@@ -20,7 +21,8 @@ import {
   FileSpreadsheet,
   AlertCircle,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 
 
@@ -44,29 +46,85 @@ type Toast = {
   type: 'success' | 'error' | 'info';
 };
 
+const isSameDay = (d1: Date, d2: Date) => {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+};
+
+const isBetween = (date: Date, start: Date, end: Date) => {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const s = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+  const e = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
+  return d >= s && d <= e;
+};
+
+const getCalendarDays = (date: Date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const firstDayOfWeek = firstDay.getDay();
+
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+  const days: { date: Date; isCurrentMonth: boolean }[] = [];
+
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    days.push({
+      date: new Date(year, month - 1, prevMonthTotalDays - i),
+      isCurrentMonth: false
+    });
+  }
+
+  for (let i = 1; i <= totalDays; i++) {
+    days.push({
+      date: new Date(year, month, i),
+      isCurrentMonth: true
+    });
+  }
+
+  const remainingCells = 42 - days.length;
+  for (let i = 1; i <= remainingCells; i++) {
+    days.push({
+      date: new Date(year, month + 1, i),
+      isCurrentMonth: false
+    });
+  }
+
+  return days;
+};
+
 export default function ReportsPage() {
   const router = useRouter();
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [data, setData] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
+  // Calendar States
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState<Date | null>(null);
+  const [tempEndDate, setTempEndDate] = useState<Date | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+
+  // Grouped date expanded states
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+
   // Custom controls
   const [preset, setPreset] = useState<'week' | 'month' | 'year' | 'custom'>('custom');
   const [searchQuery, setSearchQuery] = useState('');
-  const [cardSize, setCardSize] = useState<'compact' | 'comfortable'>('comfortable');
+  const cardSize = 'comfortable';
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      router.replace('/login');
-    } else {
-      setIsAuthChecking(false);
-      fetchReports();
-    }
-  }, [startDate, endDate, router]);
+    fetchReports();
+  }, [startDate, endDate]);
+
 
   const addToast = (message: string, type: 'success' | 'error' | 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -97,10 +155,41 @@ export default function ReportsPage() {
     }
   };
 
+  const openCalendar = () => {
+    setTempStartDate(startDate ? new Date(startDate) : null);
+    setTempEndDate(endDate ? new Date(endDate) : null);
+    setCalendarMonth(startDate ? new Date(startDate) : new Date());
+    setShowCalendar(true);
+  };
+
+  const handleDateClick = (clickedDate: Date) => {
+    if (!tempStartDate || (tempStartDate && tempEndDate)) {
+      setTempStartDate(clickedDate);
+      setTempEndDate(null);
+    } else {
+      if (clickedDate < tempStartDate) {
+        setTempStartDate(clickedDate);
+        setTempEndDate(null);
+      } else {
+        setTempEndDate(clickedDate);
+        const startStr = tempStartDate.toISOString().split('T')[0];
+        const endStr = clickedDate.toISOString().split('T')[0];
+        setStartDate(startStr);
+        setEndDate(endStr);
+        setPreset('custom');
+        setShowCalendar(false);
+        addToast('Applied custom date range.', 'info');
+      }
+    }
+  };
+
   // Preset Date Range calculations
   const applyPreset = (selectedPreset: 'week' | 'month' | 'year' | 'custom') => {
     setPreset(selectedPreset);
-    if (selectedPreset === 'custom') return;
+    if (selectedPreset === 'custom') {
+      openCalendar();
+      return;
+    }
 
     const today = new Date();
     let start = new Date();
@@ -123,6 +212,11 @@ export default function ReportsPage() {
 
     setStartDate(startStr);
     setEndDate(endStr);
+
+    // Update temp states for calendar sync
+    setTempStartDate(start);
+    setTempEndDate(new Date());
+
     addToast(`Applied date filter: ${selectedPreset} wise.`, 'info');
   };
 
@@ -141,7 +235,7 @@ export default function ReportsPage() {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'SVU StaffSync AttendPro';
       workbook.created = new Date();
-      
+
       const worksheet = workbook.addWorksheet('Attendance Report', {
         views: [{ state: 'frozen', ySplit: 1 }] // Freeze header row
       });
@@ -212,7 +306,7 @@ export default function ReportsPage() {
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
+
       const filename = `SVU_Attendance_Report_${preset !== 'custom' ? preset : 'custom'}_${format(new Date(), 'yyyyMMdd')}.xlsx`;
       saveAs(blob, filename);
       addToast(`Excel report successfully downloaded!`, 'success');
@@ -251,20 +345,32 @@ export default function ReportsPage() {
     return nameMatch || rollMatch;
   });
 
+  // Group filteredData by date
+  const groupedByDate = filteredData.reduce((acc, row) => {
+    const dateKey = row.date; // e.g. "2026-07-02"
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(row);
+    return acc;
+  }, {} as Record<string, ReportRow[]>);
+
+  // Sort dates descending
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+
+  const toggleDate = (dateKey: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [dateKey]: !prev[dateKey]
+    }));
+  };
+
   // Calculate filtered stats
   const totalPresent = filteredData.filter(r => r.status === 'Present').length;
   const totalAbsent = filteredData.filter(r => r.status === 'Absent').length;
   const totalLate = filteredData.filter(r => r.status === 'Late').length;
   const totalEarlyOut = filteredData.filter(r => r.isEarlyCheckOut).length;
   const totalRecords = filteredData.length;
-
-  if (isAuthChecking) {
-    return (
-      <div className="fixed inset-0 z-[200] bg-slate-50 flex items-center justify-center">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Authenticating...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800">
@@ -279,10 +385,10 @@ export default function ReportsPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8, x: 50 }}
               className={`p-4 rounded-sm shadow-sm border backdrop-blur-md pointer-events-auto flex items-center gap-3 ${toast.type === 'success'
-                  ? 'bg-emerald-50/95 border-emerald-200/80 text-emerald-800'
-                  : toast.type === 'error'
-                    ? 'bg-rose-50/95 border-rose-200/80 text-rose-800'
-                    : 'bg-indigo-50/95 border-indigo-200/80 text-indigo-800'
+                ? 'bg-emerald-50/95 border-emerald-200/80 text-emerald-800'
+                : toast.type === 'error'
+                  ? 'bg-rose-50/95 border-rose-200/80 text-rose-800'
+                  : 'bg-indigo-50/95 border-indigo-200/80 text-indigo-800'
                 }`}
             >
               {toast.type === 'success' && <CheckCircle2 className="text-emerald-500 shrink-0" size={20} />}
@@ -294,229 +400,322 @@ export default function ReportsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Modern Header Area */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 p-5 rounded-md border border-slate-200/60 backdrop-blur-sm shadow-sm"
-      >
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full flex items-center gap-1.5 w-fit text-indigo-700 font-bold text-[10px] tracking-wide">
-              <Sparkles size={11} className="animate-pulse" /> SVU StaffSync AttendPro
-            </div>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">Attendance Ledger & Reports</h1>
-          <p className="text-slate-500 text-xs mt-0.5">Query ledger reports, filter by ranges, and download verified staff logs.</p>
-        </div>
-
-        <button
-          onClick={exportExcel}
-          disabled={filteredData.length === 0}
-          className="flex items-center gap-2 font-bold text-xs py-3 px-6 bg-green-600 hover:bg-green-500 hover:shadow-sm active:scale-95 text-white rounded-sm shadow-sm shadow-green-100 hover:shadow-green-250 hover:-translate-y-0.5 border border-green-700/10 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none disabled:-translate-y-0 disabled:scale-100 disabled:border-transparent cursor-pointer shrink-0"
-        >
-          <Download size={14} /> Export Excel
-        </button>
-      </motion.div>
-
-      {/* Date preset tags & Date filter card form */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="bg-white/70 backdrop-blur-xl p-5 md:p-6 rounded-sm border border-white shadow-[0_8px_30px_rgb(0,0,0,0.02)] ring-1 ring-slate-200/50 flex flex-col gap-5"
-      >
-        {/* Preset Tabs (Week, Month, Year, Custom) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100/80">
-          <div className="flex gap-1 p-1 bg-slate-100/80 rounded-sm border border-slate-200/40 shrink-0">
-            <button
-              type="button"
-              onClick={() => applyPreset('week')}
-              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'week'
-                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
-                }`}
-            >
-              This Week
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset('month')}
-              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'month'
-                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
-                }`}
-            >
-              This Month
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset('year')}
-              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'year'
-                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
-                }`}
-            >
-              This Year
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset('custom')}
-              className={`px-4 py-1.8 text-xs font-bold rounded-sm transition-all cursor-pointer ${preset === 'custom'
-                  ? 'bg-white text-indigo-600 shadow-[0_2px_8px_rgba(99,102,241,0.06)] border border-slate-200/40'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/40'
-                }`}
-            >
-              Custom Range
-            </button>
-          </div>
-
-          <span className="text-[9px] font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50/60 border border-indigo-100/80 px-3 py-1 rounded-sm shadow-sm">
-            Scope: {preset === 'custom' ? 'Custom Range Selection' : `${preset}-wise scope`}
-          </span>
-        </div>
-
-        {/* Date picking forms (shows custom picks or current display range) */}
-        <form onSubmit={handleFilterSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <div className="w-full relative">
-            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Start Date</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={startDate}
-                onChange={e => {
-                  setStartDate(e.target.value);
-                  setPreset('custom');
-                }}
-                className="w-full bg-white border border-slate-200/60 rounded-sm pl-9 pr-3 py-2.5 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition-all shadow-sm"
-              />
-              <Calendar size={14} className="absolute left-3 top-3 text-indigo-500 pointer-events-none" />
-            </div>
-          </div>
-
-          <div className="w-full relative">
-            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">End Date</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={endDate}
-                onChange={e => {
-                  setEndDate(e.target.value);
-                  setPreset('custom');
-                }}
-                className="w-full bg-white border border-slate-200/60 rounded-sm pl-9 pr-3 py-2.5 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition-all shadow-sm"
-              />
-              <Calendar size={14} className="absolute left-3 top-3 text-indigo-500 pointer-events-none" />
-            </div>
-          </div>
-
-          <div className="w-full relative">
-            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Attendance Status</label>
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="w-full bg-white border border-slate-200/60 rounded-sm px-3 py-2.5 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition-all shadow-sm cursor-pointer"
-            >
-              <option value="">All Statuses</option>
-              <option value="Present">Present</option>
-              <option value="Absent">Absent</option>
-              <option value="Late">Late</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold py-2.5 px-6 rounded-sm text-xs transition-all shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer shrink-0 border border-indigo-600"
-          >
-            <Search size={14} /> Apply Filter
-          </button>
-        </form>
-      </motion.div>
+      <PageHeader
+        title="Attendance Ledger & Reports"
+        subtitle="Query ledger reports, filter by ranges, and download verified staff logs."
+        badge="SVU StaffSync AttendPro"
+        variant="green"
+      />
 
       {/* Reports Summary KPI Analytics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Total records */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* Total records (Speckled Sand/Beige Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
           whileHover={{ y: -3, transition: { duration: 0.2 } }}
-          className="bg-white p-4 rounded-sm border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-indigo-400 hover:shadow-[0_15px_30px_rgba(99,102,241,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#F2EDE4] to-[#DDD5C7] p-4 rounded-2xl border border-white/30 shadow-[-6px_-6px_16px_rgba(255,255,255,0.95),_8px_8px_16px_rgba(180,170,150,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.6),_inset_-2px_-2px_4px_rgba(0,0,0,0.06)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,1),_10px_10px_20px_rgba(180,170,150,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
         >
-          <div className="w-8 h-8 rounded-sm bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#000000"
+              opacity="0.03"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#000000"
+              opacity="0.02"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#000000"
+              strokeWidth="0.5"
+              opacity="0.04"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-[#DDD5C7]/50 text-[#5A5043] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-black/5 relative z-10">
             <FileSpreadsheet size={15} />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Logs</p>
-            <p className="text-base font-black text-slate-800">{totalRecords}</p>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-[#8C806F] uppercase tracking-widest">Total Logs</p>
+            <p className="text-base font-black text-[#5A5043]">{totalRecords}</p>
           </div>
         </motion.div>
 
-        {/* Present days */}
+        {/* Present days (Sage/Olive Green Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.13, ease: "easeOut" }}
           whileHover={{ y: -3, transition: { duration: 0.2 } }}
-          className="bg-white p-4 rounded-sm border border-emerald-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-emerald-400 hover:shadow-[0_15px_30px_rgba(16,185,129,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#8FA47F] to-[#6B805B] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.45),_8px_8px_16px_rgba(107,128,91,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.55),_10px_10px_20px_rgba(107,128,91,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
         >
-          <div className="w-8 h-8 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.12"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.07"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.15"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/10 relative z-10">
             <UserCheck size={15} />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Present Days</p>
-            <p className="text-base font-black text-slate-800">{totalPresent}</p>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-emerald-105 uppercase tracking-widest">Present Days</p>
+            <p className="text-base font-black text-white">{totalPresent}</p>
           </div>
         </motion.div>
 
-        {/* Absent days */}
+        {/* Absent days (Soft Pink/Rose Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.18, ease: "easeOut" }}
           whileHover={{ y: -3, transition: { duration: 0.2 } }}
-          className="bg-white p-4 rounded-sm border border-rose-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-rose-400 hover:shadow-[0_15px_30px_rgba(244,63,94,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#E5B5B8] to-[#C9979A] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.55),_8px_8px_16px_rgba(201,150,154,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.65),_10px_10px_20px_rgba(201,150,154,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
         >
-          <div className="w-8 h-8 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.16"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.09"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.2"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/30 text-[#7A494B] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/15 relative z-10">
             <UserX size={15} />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Absent Days</p>
-            <p className="text-base font-black text-slate-800">{totalAbsent}</p>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-[#9D686B] uppercase tracking-widest">Absent Days</p>
+            <p className="text-base font-black text-[#7A494B]">{totalAbsent}</p>
           </div>
         </motion.div>
 
-        {/* Late days */}
+        {/* Late days (Honey Amber/Orange Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.23, ease: "easeOut" }}
           whileHover={{ y: -3, transition: { duration: 0.2 } }}
-          className="bg-white p-4 rounded-sm border border-amber-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-amber-400 hover:shadow-[0_15px_30px_rgba(245,158,11,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#F4A236] to-[#D67A18] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.45),_8px_8px_16px_rgba(214,122,24,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.55),_10px_10px_20px_rgba(214,122,24,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
         >
-          <div className="w-8 h-8 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.12"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.07"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.15"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/10 relative z-10">
             <Clock size={15} />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Late Days</p>
-            <p className="text-base font-black text-slate-800">{totalLate}</p>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-amber-100 uppercase tracking-widest">Late Days</p>
+            <p className="text-base font-black text-white">{totalLate}</p>
           </div>
         </motion.div>
 
-        {/* Early Checkout days */}
+        {/* Early Checkout days (Premium Warm Peach-Nude Stone) */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.28, ease: "easeOut" }}
           whileHover={{ y: -3, transition: { duration: 0.2 } }}
-          className="bg-white p-4 rounded-sm border border-violet-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center gap-3 group hover:border-violet-400 hover:shadow-[0_15px_30px_rgba(139,92,246,0.08)] transition-all duration-300 cursor-pointer"
+          className="bg-gradient-to-br from-[#E8C5AF] to-[#CD9B7F] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.55),_8px_8px_16px_rgba(205,155,127,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.65),_10px_10px_20px_rgba(205,155,127,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
         >
-          <div className="w-8 h-8 rounded-sm bg-violet-50 text-violet-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.16"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{
+                y: [0, -4, 4, 0]
+              }}
+              transition={{
+                duration: 11,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="#ffffff"
+              opacity="0.09"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{
+                y: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.2"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/30 text-[#604230] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/15 relative z-10">
             <TrendingUp size={15} />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Early Departures</p>
-            <p className="text-base font-black text-slate-800">{totalEarlyOut}</p>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-[#825C44] uppercase tracking-widest">Early Departures</p>
+            <p className="text-base font-black text-[#604230]">{totalEarlyOut}</p>
           </div>
         </motion.div>
       </div>
@@ -526,48 +725,227 @@ export default function ReportsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="flex flex-col gap-4"
+        className="bg-[#EDE3CE] border border-white/60 rounded-[32px] overflow-visible shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] flex flex-col"
       >
-        {/* Search, Filter Bar and Sizer */}
-        <div className="bg-white p-4 rounded-sm border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative flex-1 w-full max-w-sm">
-            <input
-              type="text"
-              placeholder="Search reports by employee name or ID..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-sm text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-slate-400 font-semibold"
-            />
-            <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+        {/* Merged Filter & Search Toolbar Header */}
+        <div className="bg-[#EDE3CE]/30 border-b border-[#EADFC9]/30 p-5 md:p-6 flex flex-col gap-5 rounded-t-[32px]">
+          {/* Top Row: Title, Search & Density */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-black text-[#6B7E39] tracking-tight uppercase flex items-center gap-2">
+                <FileSpreadsheet size={15} className="text-[#6B7E39]" /> Attendance Ledger Logs
+              </h2>
+              <p className="text-[10px] text-slate-400 font-bold mt-0.5">Filter ranges, status categories, and search names to view staff logs</p>
+            </div>
+
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              {/* Search Box */}
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="Search staff name or ID..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-[#FAF8F5] border border-[#FDA769]/30 rounded-2xl text-xs text-[#FDA769] focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all placeholder-[#FDA769]/65 font-bold shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff]"
+                />
+                <Search size={14} className="absolute left-3 top-3 text-[#FDA769]" />
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Density:</span>
-            <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-sm">
+          {/* Bottom Row: Filter Dropdowns and Actions */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-4 border-t border-[#E3DEC3]/25">
+            <div className="flex flex-wrap items-center gap-4 flex-1">
+              {/* Preset Selector */}
+              <div className="flex flex-col gap-1.5 w-full sm:flex-1 min-w-[150px]">
+                <label className="block text-[9px] font-extrabold text-[#FDA769] uppercase tracking-widest">
+                  Preset Range
+                </label>
+                <div className="relative">
+                  <select
+                    value={preset}
+                    onChange={e => applyPreset(e.target.value as any)}
+                    className="w-full appearance-none bg-[#FAF8F5] border border-[#FCE68A]/30 rounded-2xl pl-3 pr-8 py-2.5 text-xs text-[#FDA769] font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer"
+                  >
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                    <ChevronRight size={14} className="rotate-90" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Date Range Picker */}
+              <div className="flex flex-col gap-1.5 w-full sm:flex-1 min-w-[200px] relative">
+                <label className="block text-[9px] font-extrabold text-[#FDA769] uppercase tracking-widest">
+                  Select Date Range
+                </label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (showCalendar) setShowCalendar(false);
+                      else openCalendar();
+                    }}
+                    className="w-full bg-[#FAF8F5] border border-[#FCE68A]/30 rounded-2xl pl-9 pr-3 py-2.5 text-xs text-[#FDA769] font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer flex items-center justify-between text-left"
+                  >
+                    <span>
+                      {startDate && endDate
+                        ? `${format(new Date(startDate), 'MMM d, yyyy')} - ${format(new Date(endDate), 'MMM d, yyyy')}`
+                        : 'Select Date Range'}
+                    </span>
+                    <Calendar size={14} className="text-[#FDA769] shrink-0 ml-2" />
+                  </button>
+
+                  {/* Calendar Popover */}
+                  <AnimatePresence>
+                    {showCalendar && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40 bg-transparent"
+                          onClick={() => {
+                            setShowCalendar(false);
+                            setTempStartDate(startDate ? new Date(startDate) : null);
+                            setTempEndDate(endDate ? new Date(endDate) : null);
+                          }}
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scaleY: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                          exit={{ opacity: 0, y: -8, scaleY: 0.95 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="absolute top-full left-0 right-0 z-50 mt-1 bg-[#8A9A5B] border border-[#7D8C50] rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans origin-top"
+                        >
+                          {/* Sage Green Calendar Header & Month Grid Section */}
+                          <div className="p-5 pb-5 text-white select-none">
+                            {/* Month Selector Navigation Row */}
+                            <div className="flex items-center justify-between mb-4">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                                }}
+                                className="p-1.5 hover:bg-white/10 rounded-full text-white cursor-pointer transition-all duration-200 active:scale-90"
+                              >
+                                <ChevronLeft size={16} />
+                              </button>
+                              <span className="text-xs font-black tracking-widest uppercase">
+                                {format(calendarMonth, 'MMMM yyyy')}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                                }}
+                                className="p-1.5 hover:bg-white/10 rounded-full text-white cursor-pointer transition-all duration-200 active:scale-90"
+                              >
+                                <ChevronRight size={16} />
+                              </button>
+                            </div>
+
+                            {/* Days of Week Header Row */}
+                            <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+                                <span key={idx} className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
+                                  {day}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Calendar Days Grid */}
+                            <div className="grid grid-cols-7 gap-y-1.5 gap-x-1 text-center">
+                              {getCalendarDays(calendarMonth).map(({ date, isCurrentMonth }, i) => {
+                                const isToday = isSameDay(date, new Date());
+                                const isSelectedStart = tempStartDate && isSameDay(date, tempStartDate);
+                                const isSelectedEnd = tempEndDate && isSameDay(date, tempEndDate);
+                                const isInRange = tempStartDate && tempEndDate && isBetween(date, tempStartDate, tempEndDate);
+
+                                let btnClass = "text-xs h-8 w-8 flex items-center justify-center rounded-full font-bold transition-all duration-200 cursor-pointer relative ";
+
+                                if (isSelectedStart || isSelectedEnd) {
+                                  btnClass += "bg-[#4E5B2E] text-white font-extrabold shadow-sm";
+                                } else if (isInRange) {
+                                  btnClass += "bg-white/20 text-white font-bold";
+                                } else if (isCurrentMonth) {
+                                  btnClass += "text-white hover:bg-white/10";
+                                } else {
+                                  btnClass += "text-white/30 hover:bg-white/5";
+                                }
+
+                                const todayIndicator = isToday && !isSelectedStart && !isSelectedEnd;
+
+                                return (
+                                  <div key={i} className="flex justify-center items-center relative">
+                                    <button
+                                      key={i}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDateClick(date);
+                                      }}
+                                      className={btnClass}
+                                    >
+                                      {date.getDate()}
+                                      {todayIndicator && (
+                                        <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-white rounded-full" />
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="flex flex-col gap-1.5 w-full sm:flex-1 min-w-[150px]">
+                <label className="block text-[9px] font-extrabold text-[#FDA769] uppercase tracking-widest">
+                  Attendance Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  className="w-full bg-[#FAF8F5] border border-[#FCE68A]/30 rounded-2xl px-3 py-2.5 text-xs text-[#FDA769] font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Present">Present</option>
+                  <option value="Absent">Absent</option>
+                  <option value="Late">Late</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
               <button
-                onClick={() => setCardSize('compact')}
-                className={`px-2.5 py-1.2 rounded-sm text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'compact'
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-700'
-                  }`}
+                onClick={fetchReports}
+                className="flex-1 md:flex-none px-5 py-2.5 bg-[#FDA769] hover:bg-[#e09156] text-white font-bold rounded-2xl text-xs transition-all border border-white/20 shadow-[-4px_-4px_12px_#ffffff,_6px_6px_12px_rgba(165,155,135,0.25),_inset_2px_2px_4px_rgba(255,255,255,0.4),_inset_-2px_-2px_4px_rgba(0,0,0,0.15)] hover:-translate-y-1 hover:shadow-[-6px_-6px_16px_#ffffff,_8px_8px_16px_rgba(165,155,135,0.32)] active:translate-y-0.5 active:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.18),_inset_-3px_-3px_6px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2 cursor-pointer"
               >
-                Compact
+                <Search size={14} /> Apply Filter
               </button>
               <button
-                onClick={() => setCardSize('comfortable')}
-                className={`px-2.5 py-1.2 rounded-sm text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'comfortable'
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-700'
-                  }`}
+                onClick={exportExcel}
+                disabled={filteredData.length === 0}
+                className="flex-1 md:flex-none px-5 py-2.5 bg-[#ABC270] hover:bg-[#9CAE65] text-white font-bold rounded-2xl text-xs transition-all border border-white/20 shadow-[-4px_-4px_12px_#ffffff,_6px_6px_12px_rgba(165,155,135,0.25),_inset_2px_2px_4px_rgba(255,255,255,0.4),_inset_-2px_-2px_4px_rgba(0,0,0,0.15)] hover:-translate-y-1 hover:shadow-[-6px_-6px_16px_#ffffff,_8px_8px_16px_rgba(165,155,135,0.32)] active:translate-y-0.5 active:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.18),_inset_-3px_-3px_6px_rgba(255,255,255,0.2)] disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none disabled:-translate-y-0 disabled:scale-100 cursor-pointer flex items-center justify-center gap-2"
               >
-                Comfortable
+                <Download size={14} /> Export Excel
               </button>
             </div>
           </div>
         </div>
 
         {/* Data Table */}
-        <div className="bg-white border border-slate-200 rounded-md overflow-hidden shadow-sm">
+        <div>
           {loading ? (
             /* Shimmer Skeleton Loader */
             <div className="p-12 flex flex-col gap-4">
@@ -583,109 +961,184 @@ export default function ReportsPage() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse min-w-[900px]">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200/80">
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      Date Logged
-                    </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      SVU Staff Employee
-                    </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      Status
-                    </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      In-Time
-                    </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      Out-Time
-                    </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      Early Checkout
-                    </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
-                      }`}>
-                      Leave Reason
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredData.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center text-slate-500 font-bold text-xs">
-                        No ledger logs match the current query dates or parameters.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredData.map((row, i) => {
-                      const isCompact = cardSize === 'compact';
-                      let safeDateStr = 'N/A';
-                      try {
-                        if (row.date) safeDateStr = format(new Date(row.date), 'MMM d, yyyy');
-                      } catch (e) { }
+            <div className="w-full p-4 flex flex-col gap-4">
+              {filteredData.length === 0 ? (
+                <div className="px-6 py-16 text-center text-slate-500 font-bold text-xs bg-white rounded-md border border-slate-200/60 shadow-sm">
+                  No ledger logs match the current query dates or parameters.
+                </div>
+              ) : (
+                sortedDates.map((dateKey) => {
+                  const isCompact = false;
+                  let safeDateStr = 'N/A';
+                  try {
+                    if (dateKey) safeDateStr = format(new Date(dateKey), 'EEEE, MMMM d, yyyy');
+                  } catch (e) { }
 
-                      return (
-                        <tr key={i} className="hover:bg-slate-50/50 transition-colors text-slate-800">
-                          <td className={`font-bold text-slate-800 ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
-                            }`}>
-                            {safeDateStr}
-                          </td>
-                          <td className={`flex items-center gap-3 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'}`}>
-                            <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(row.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
-                              }`}>
-                              {row.name.charAt(0)}
+                  const isExpanded = !!expandedDates[dateKey];
+                  const dayLogs = groupedByDate[dateKey];
+
+                  return (
+                    <div key={dateKey} className="flex flex-col">
+                      <div
+                        onClick={() => toggleDate(dateKey)}
+                        className="px-6 py-3 bg-white hover:bg-slate-50/80 border-2 border-[#ABC270] cursor-pointer select-none flex items-center justify-between rounded-full shadow-[0_6px_15px_-3px_rgba(107,126,57,0.15),_0_2px_6px_-2px_rgba(107,126,57,0.1)] hover:shadow-[0_12px_24px_-5px_rgba(107,126,57,0.25)] text-[#6B7E39] transition-all hover:translate-x-0.5 active:translate-x-0"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ChevronRight
+                            size={16}
+                            className={`text-[#6B7E39] transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                          />
+                          <span className="font-extrabold text-[#6B7E39] text-xs tracking-wide">{safeDateStr}</span>
+                        </div>
+                        <span className="text-[10px] font-extrabold text-[#6B7E39] bg-[#ABC270]/10 border border-[#9CAE65]/30 px-2.5 py-0.5 rounded-full shadow-sm">
+                          {dayLogs.length} {dayLogs.length === 1 ? 'record' : 'records'}
+                        </span>
+                      </div>
+
+                      <AnimatePresence initial={false}>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: 'easeInOut' }}
+                            className="overflow-hidden bg-white rounded-md border border-slate-200/50 shadow-md mx-2 sm:mx-4 mt-3"
+                          >
+                            {/* Desktop Table View (Visible on medium screens and up) */}
+                            <table className="hidden md:table w-full text-left border-collapse table-fixed">
+                              <thead>
+                                <tr className="bg-slate-50/40 border-b border-slate-200/40 text-slate-400">
+                                  <th className={`w-[28%] font-bold text-[9px] uppercase tracking-widest ${isCompact ? 'px-4 py-2.5' : 'px-6 py-3.5'}`}>
+                                    SVU Staff Employee
+                                  </th>
+                                  <th className={`w-[12%] font-bold text-[9px] uppercase tracking-widest ${isCompact ? 'px-4 py-2.5' : 'px-6 py-3.5'}`}>
+                                    Status
+                                  </th>
+                                  <th className={`w-[12%] font-bold text-[9px] uppercase tracking-widest ${isCompact ? 'px-4 py-2.5' : 'px-6 py-3.5'}`}>
+                                    In-Time
+                                  </th>
+                                  <th className={`w-[12%] font-bold text-[9px] uppercase tracking-widest ${isCompact ? 'px-4 py-2.5' : 'px-6 py-3.5'}`}>
+                                    Out-Time
+                                  </th>
+                                  <th className={`w-[15%] font-bold text-[9px] uppercase tracking-widest ${isCompact ? 'px-4 py-2.5' : 'px-6 py-3.5'}`}>
+                                    Early Checkout
+                                  </th>
+                                  <th className={`w-[21%] font-bold text-[9px] uppercase tracking-widest ${isCompact ? 'px-4 py-2.5' : 'px-6 py-3.5'}`}>
+                                    Leave Reason
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {dayLogs.map((row, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50/40 transition-colors text-slate-800 border-b border-slate-100/55 last:border-b-0">
+                                    <td className={`w-[28%] flex items-center gap-3 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'}`}>
+                                      <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(row.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
+                                        }`}>
+                                        {row.name.charAt(0)}
+                                      </div>
+                                      <div>
+                                        <span className={`font-bold text-slate-800 block leading-tight ${isCompact ? 'text-xs' : 'text-sm'
+                                          }`}>{row.name}</span>
+                                        <span className="text-[9px] font-mono text-slate-400 block mt-0.5">ID: {row.employeeId}</span>
+                                      </div>
+                                    </td>
+                                    <td className={`w-[12%] ${isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'}`}>
+                                      <span className={`inline-flex items-center font-bold border ${isCompact ? 'px-2 py-0.5 text-[9px] rounded-md' : 'px-2.5 py-0.5 rounded text-xs'
+                                        } ${row.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-250' :
+                                          row.status === 'Absent' ? 'bg-rose-50 text-rose-700 border-rose-250' :
+                                            'bg-amber-50 text-amber-700 border-amber-250'
+                                        }`}>
+                                        {row.status}
+                                      </span>
+                                    </td>
+                                    <td className={`w-[12%] font-mono font-medium ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
+                                      }`}>
+                                      {row.checkInTime || '-'}
+                                    </td>
+                                    <td className={`w-[12%] font-mono font-medium ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
+                                      }`}>
+                                      {row.checkOutTime || '-'}
+                                    </td>
+                                    <td className={`w-[15%] ${isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'}`}>
+                                      {row.isEarlyCheckOut ? (
+                                        <span className={`inline-flex items-center bg-rose-50 border border-rose-200 text-rose-750 font-bold ${isCompact ? 'px-1.5 py-0.5 text-[9px] rounded-md' : 'px-2 py-0.5 rounded-md text-[10px]'
+                                          }`}>
+                                          Early Out
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-350 text-xs">-</span>
+                                      )}
+                                    </td>
+                                    <td className={`w-[21%] font-medium text-slate-600 ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
+                                      }`}>
+                                      {row.leaveReason || '-'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+
+                            {/* Mobile Card List View (Visible on small screens) */}
+                            <div className="block md:hidden divide-y divide-slate-100">
+                              {dayLogs.map((row, idx) => (
+                                <div key={idx} className="p-4 flex flex-col gap-3 hover:bg-slate-50/40 transition-colors">
+                                  {/* Employee Header */}
+                                  <div className="flex items-center gap-3">
+                                    <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase shadow-sm ${getAvatarGradient(row.name)} w-9 h-9 text-xs`}>
+                                      {row.name.charAt(0)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-bold text-slate-800 block text-xs truncate">{row.name}</span>
+                                      <span className="text-[9px] font-mono text-slate-400 block mt-0.5">ID: {row.employeeId}</span>
+                                    </div>
+
+                                    {/* Status Badge */}
+                                    <span className={`inline-flex items-center font-bold border px-2 py-0.5 rounded text-[10px] ${row.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                      row.status === 'Absent' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                        'bg-amber-50 text-amber-700 border-amber-250'
+                                      }`}>
+                                      {row.status}
+                                    </span>
+                                  </div>
+
+                                  {/* Timings & Early Out */}
+                                  <div className="grid grid-cols-2 gap-2 bg-slate-50/50 p-2.5 rounded border border-slate-100 text-[11px] font-medium text-slate-600">
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">In-Time</span>
+                                      <span className="font-mono text-slate-800">{row.checkInTime || '-'}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Out-Time</span>
+                                      <span className="font-mono text-slate-800">{row.checkOutTime || '-'}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Additional Status Details */}
+                                  {(row.isEarlyCheckOut || row.leaveReason) && (
+                                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                                      {row.isEarlyCheckOut && (
+                                        <span className="inline-flex items-center bg-rose-50 border border-rose-200 text-rose-750 font-bold px-1.5 py-0.5 rounded-md text-[9px]">
+                                          Early Out
+                                        </span>
+                                      )}
+                                      {row.leaveReason && (
+                                        <div className="flex-1 text-[10px] text-slate-500 font-medium">
+                                          <span className="font-bold text-slate-400 mr-1">Reason:</span>
+                                          {row.leaveReason}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                            <div>
-                              <span className={`font-bold text-slate-800 block leading-tight ${isCompact ? 'text-xs' : 'text-sm'
-                                }`}>{row.name}</span>
-                              <span className="text-[9px] font-mono text-slate-400 block mt-0.5">ID: {row.employeeId}</span>
-                            </div>
-                          </td>
-                          <td className={isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'}>
-                            <span className={`inline-flex items-center font-bold border ${isCompact ? 'px-2 py-0.5 text-[9px] rounded-md' : 'px-2.5 py-0.5 rounded text-xs'
-                              } ${row.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-250' :
-                                row.status === 'Absent' ? 'bg-rose-50 text-rose-700 border-rose-250' :
-                                  'bg-amber-50 text-amber-700 border-amber-250'
-                              }`}>
-                              {row.status}
-                            </span>
-                          </td>
-                          <td className={`font-mono font-medium ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
-                            }`}>
-                            {row.checkInTime || '-'}
-                          </td>
-                          <td className={`font-mono font-medium ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
-                            }`}>
-                            {row.checkOutTime || '-'}
-                          </td>
-                          <td className={isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'}>
-                            {row.isEarlyCheckOut ? (
-                              <span className={`inline-flex items-center bg-rose-50 border border-rose-200 text-rose-750 font-bold ${isCompact ? 'px-1.5 py-0.5 text-[9px] rounded-md' : 'px-2 py-0.5 rounded-md text-[10px]'
-                                }`}>
-                                Early Out
-                              </span>
-                            ) : (
-                              <span className="text-slate-350 text-xs">-</span>
-                            )}
-                          </td>
-                          <td className={`font-medium text-slate-600 ${isCompact ? 'px-4 py-2.2 text-[11px]' : 'px-6 py-3.5 text-xs'
-                            }`}>
-                            {row.leaveReason || '-'}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })
+              )}
             </div>
           )}
         </div>

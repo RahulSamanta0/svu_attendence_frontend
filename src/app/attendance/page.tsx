@@ -4,9 +4,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '@/components/PageHeader';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CheckCircle2,
   XCircle,
   Clock,
@@ -15,14 +17,14 @@ import {
   Search,
   LayoutGrid,
   List,
-  RotateCcw,
   AlertCircle,
   Calendar,
   Sparkles,
   TrendingUp,
   UserCheck,
   UserX,
-  ArrowUpDown
+  ArrowUpDown,
+  Users
 } from 'lucide-react';
 
 
@@ -45,9 +47,53 @@ type Toast = {
   type: 'success' | 'error' | 'info';
 };
 
+const isSameDay = (d1: Date, d2: Date) => {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+};
+
+const getCalendarDays = (date: Date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const firstDayOfWeek = firstDay.getDay();
+
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+  const days: { date: Date; isCurrentMonth: boolean }[] = [];
+
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    days.push({
+      date: new Date(year, month - 1, prevMonthTotalDays - i),
+      isCurrentMonth: false
+    });
+  }
+
+  for (let i = 1; i <= totalDays; i++) {
+    days.push({
+      date: new Date(year, month, i),
+      isCurrentMonth: true
+    });
+  }
+
+  const remainingCells = 42 - days.length;
+  for (let i = 1; i <= remainingCells; i++) {
+    days.push({
+      date: new Date(year, month + 1, i),
+      isCurrentMonth: false
+    });
+  }
+
+  return days;
+};
+
 export default function AttendancePage() {
   const router = useRouter();
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [persons, setPersons] = useState<Person[]>([]);
   const [records, setRecords] = useState<Record<string, AttendanceRecord>>({});
@@ -60,20 +106,27 @@ export default function AttendancePage() {
   const [statusFilter, setStatusFilter] = useState<'All' | 'Present' | 'Absent' | 'Late'>('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+  const [showCalendarPopover, setShowCalendarPopover] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+
+  useEffect(() => {
+    const [y, m, d] = date.split('-');
+    setCalendarMonth(new Date(Number(y), Number(m) - 1, Number(d)));
+  }, [date]);
 
   // Sorting & Size Density states
   const [sortBy, setSortBy] = useState<'name' | 'id' | 'status'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [cardSize, setCardSize] = useState<'compact' | 'comfortable'>('comfortable');
+  const [cardSize, setCardSize] = useState<'compact' | 'comfortable'>('compact');
+
+  // Bulk In/Out time
+  const [bulkInTime, setBulkInTime] = useState('11:30');
+  const [bulkOutTime, setBulkOutTime] = useState('19:00');
 
   useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      router.replace('/login');
-    } else {
-      setIsAuthChecking(false);
-      fetchData();
-    }
-  }, [date, router]);
+    fetchData();
+  }, [date]);
 
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -92,10 +145,10 @@ export default function AttendancePage() {
   const isToday = date === localToday || date === utcToday;
 
   useEffect(() => {
-    if (isWeekend && !isAuthChecking) {
+    if (isWeekend) {
       addToast('Weekend holiday: attendance is not recorded.', 'info');
     }
-  }, [isWeekend, addToast, isAuthChecking]);
+  }, [isWeekend, addToast]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -288,6 +341,21 @@ export default function AttendancePage() {
     addToast('Restored original records for this date', 'info');
   };
 
+  const applyBulkTime = (field: 'checkInTime' | 'checkOutTime', value: string) => {
+    if (!isToday) return;
+    setRecords(prev => {
+      const updated = { ...prev };
+      persons.forEach(p => {
+        const rec = updated[p._id];
+        if (rec && (rec.status === 'Present' || rec.status === 'Late')) {
+          updated[p._id] = { ...rec, [field]: value };
+        }
+      });
+      return updated;
+    });
+    addToast(`Updated ${field === 'checkInTime' ? 'In Time' : 'Out Time'} for all present members`, 'success');
+  };
+
   // KPIs
   const totalPresent = Object.values(records).filter(s => s.status === 'Present').length;
   const totalAbsent = Object.values(records).filter(s => s.status === 'Absent').length;
@@ -352,14 +420,6 @@ export default function AttendancePage() {
     }
   };
 
-  if (isAuthChecking) {
-    return (
-      <div className="fixed inset-0 z-[200] bg-slate-50 flex items-center justify-center">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Authenticating...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800">
 
@@ -388,223 +448,266 @@ export default function AttendancePage() {
         </AnimatePresence>
       </div>
 
-      {/* Modern Page Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 p-5 rounded-md border border-slate-200/60 backdrop-blur-sm shadow-sm"
-      >
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full flex items-center gap-1.5 w-fit text-indigo-700 font-bold text-[10px] tracking-wide">
-              <Sparkles size={11} className="animate-pulse" /> SVU StaffSync AttendPro
-            </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live View</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">SVU StaffSync AttendPro Attendance</h1>
-          <p className="text-slate-500 text-xs mt-0.5">Configure states, log times, and manage attendance records for SVU employees.</p>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          {hasUnsavedChanges && (
+      <PageHeader
+        title="SVU StaffSync AttendPro Attendance"
+        subtitle="Configure states, log times, and manage attendance records for SVU employees."
+        badge="Live View"
+        variant="green"
+        actions={
+          hasUnsavedChanges ? (
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1.2 px-2.5 py-1.2 bg-amber-50 border border-amber-200 text-amber-700 font-bold text-[11px] rounded shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 border border-white/10 text-white font-bold text-[11px] rounded-full shrink-0"
             >
-              <span className="w-1.5 h-1.5 rounded bg-amber-500 animate-ping" />
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-ping" />
               Unsaved changes
             </motion.span>
-          )}
-
-          <button
-            onClick={handleSave}
-            disabled={saving || loading || persons.length === 0 || isWeekend || !isToday}
-            className={`flex items-center gap-1.5 font-bold text-xs py-2.5 px-5 rounded-sm transition-all shadow-sm ${hasUnsavedChanges && isToday
-              ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100 hover:shadow-sm hover:-translate-y-0.5'
-              : 'bg-slate-800 hover:bg-slate-950 text-white shadow-sm'
-              } disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none disabled:-translate-y-0 cursor-pointer`}
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {saving ? 'Saving...' : 'Save Records'}
-          </button>
-        </div>
-      </motion.div>
-
-      {/* ULTRA-COMPACT Horizontal Date Navigator Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="flex flex-col md:flex-row items-center justify-between gap-5 bg-white/70 backdrop-blur-xl p-3 md:p-4 rounded-sm border border-white shadow-sm ring-1 ring-slate-200/50"
-      >
-        {/* Left: Date Selection Block */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative shrink-0">
-            <input
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="pl-9 pr-3 py-2.5 bg-white border border-slate-200/60 rounded-sm text-slate-700 font-extrabold text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all shadow-sm w-36"
-            />
-            <Calendar size={14} className="absolute left-3 top-2.5 text-indigo-500 pointer-events-none" />
-          </div>
-
-          <div className="flex gap-1.5 p-1 bg-slate-100/50 rounded-sm border border-slate-200/50">
-            <button
-              onClick={() => setDate(new Date().toISOString().split('T')[0])}
-              className={`px-3.5 py-1.5 text-[10.5px] font-bold rounded-sm transition-all cursor-pointer tracking-wide ${date === new Date().toISOString().split('T')[0]
-                ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/30 border border-transparent'
-                }`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                setDate(yesterday.toISOString().split('T')[0]);
-              }}
-              className={`px-3.5 py-1.5 text-[10.5px] font-bold rounded-sm transition-all cursor-pointer tracking-wide border border-transparent ${date === (new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0])
-                ? 'bg-white text-indigo-600 shadow-sm border-slate-200/50'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/30'
-                }`}
-            >
-              Yesterday
-            </button>
-          </div>
-        </div>
-
-        {/* Right: Slim Horizontal Day Strip */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end flex-1 max-w-xl">
-          <button
-            onClick={() => changeDate(-1)}
-            className="p-2 bg-white hover:bg-slate-50 rounded-sm text-slate-500 border border-slate-200/60 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0 hover:text-indigo-600 hover:border-indigo-200"
-          >
-            <ChevronLeft size={16} />
-          </button>
-
-          <div className="flex gap-1.5 flex-1 max-w-md overflow-x-auto hide-scrollbar px-1 py-1">
-            {getDaysOfWeek(date).map((day) => {
-              const isSelected = day.dateStr === date;
-              return (
-                <button
-                  key={day.dateStr}
-                  onClick={() => setDate(day.dateStr)}
-                  className={`flex flex-col items-center justify-center py-2 px-1.5 rounded-sm transition-all cursor-pointer min-w-[50px] shrink-0 transform ${isSelected
-                    ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/30 scale-105 border border-indigo-400'
-                    : 'bg-transparent hover:bg-white text-slate-500 border border-transparent hover:border-slate-200/60 hover:shadow-sm hover:scale-105 hover:text-indigo-600'
-                    }`}
-                >
-                  <span className={`text-[9px] font-extrabold uppercase tracking-widest ${isSelected ? 'text-indigo-100' : 'opacity-70'}`}>
-                    {day.dayName}
-                  </span>
-                  <span className={`text-base font-black tracking-tight leading-none mt-1 ${isSelected ? 'text-white' : ''}`}>
-                    {day.dayNum}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={() => changeDate(1)}
-            className="p-2 bg-white hover:bg-slate-50 rounded-sm text-slate-500 border border-slate-200/60 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0 hover:text-indigo-600 hover:border-indigo-200"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </motion.div>
+          ) : undefined
+        }
+      />
 
       {/* Statistics Cards Dashboard */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* All Members Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          onClick={() => setStatusFilter('All')}
+          className={`bg-gradient-to-br from-[#7B8FA6] to-[#5A7089] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.45),_8px_8px_16px_rgba(90,112,137,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.55),_10px_10px_20px_rgba(90,112,137,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5 ${
+            statusFilter === 'All' ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.03] shadow-[0_0_15px_rgba(90,112,137,0.5)] z-10' : ''
+          }`}
+        >
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.12"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{ y: [0, -4, 4, 0] }}
+              transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.07"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.15"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/10 relative z-10">
+            <Users size={15} />
+          </div>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-blue-100/90 uppercase tracking-widest">All Members</p>
+            <p className="text-base font-black text-white">{persons.length}</p>
+          </div>
+        </motion.div>
+        {/* Present Card */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-emerald-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between group hover:border-emerald-400 hover:shadow-[0_15px_30px_rgba(16,185,129,0.08)] transition-all duration-300 cursor-pointer"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          onClick={() => setStatusFilter(prev => prev === 'Present' ? 'All' : 'Present')}
+          className={`bg-gradient-to-br from-[#8FA47F] to-[#6B805B] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.45),_8px_8px_16px_rgba(107,128,91,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.55),_10px_10px_20px_rgba(107,128,91,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5 ${
+            statusFilter === 'Present' ? 'ring-2 ring-emerald-500 ring-offset-2 scale-[1.03] shadow-[0_0_15px_rgba(107,128,91,0.5)] z-10' : ''
+          }`}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <UserCheck size={18} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Present</p>
-              <p className="text-xl font-black text-slate-800 mt-0.5">{totalPresent}</p>
-            </div>
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.12"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{ y: [0, -4, 4, 0] }}
+              transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.07"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.15"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/10 relative z-10">
+            <UserCheck size={15} />
           </div>
-          <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100">
-            Active
-          </span>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-emerald-100/90 uppercase tracking-widest">Present</p>
+            <p className="text-base font-black text-white">{totalPresent}</p>
+          </div>
         </motion.div>
 
+        {/* Absent Card */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-rose-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between group hover:border-rose-400 hover:shadow-[0_15px_30px_rgba(244,63,94,0.08)] transition-all duration-300 cursor-pointer"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          onClick={() => setStatusFilter(prev => prev === 'Absent' ? 'All' : 'Absent')}
+          className={`bg-gradient-to-br from-[#E5B5B8] to-[#C9979A] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.55),_8px_8px_16px_rgba(201,150,154,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.65),_10px_10px_20px_rgba(201,150,154,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5 ${
+            statusFilter === 'Absent' ? 'ring-2 ring-rose-500 ring-offset-2 scale-[1.03] shadow-[0_0_15px_rgba(201,150,154,0.5)] z-10' : ''
+          }`}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-sm bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <UserX size={18} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Absent</p>
-              <p className="text-xl font-black text-slate-800 mt-0.5">{totalAbsent}</p>
-            </div>
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.16"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{ y: [0, -4, 4, 0] }}
+              transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.09"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.2"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/30 text-[#7A494B] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/15 relative z-10">
+            <UserX size={15} />
           </div>
-          <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded-md border border-rose-100">
-            Out
-          </span>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-[#9D686B] uppercase tracking-widest">Absent</p>
+            <p className="text-base font-black text-[#7A494B]">{totalAbsent}</p>
+          </div>
         </motion.div>
 
+        {/* Late Card */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-amber-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between group hover:border-amber-400 hover:shadow-[0_15px_30px_rgba(245,158,11,0.08)] transition-all duration-300 cursor-pointer"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          onClick={() => setStatusFilter(prev => prev === 'Late' ? 'All' : 'Late')}
+          className={`bg-gradient-to-br from-[#F4A236] to-[#D67A18] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.45),_8px_8px_16px_rgba(214,122,24,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.55),_10px_10px_20px_rgba(214,122,24,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5 ${
+            statusFilter === 'Late' ? 'ring-2 ring-amber-500 ring-offset-2 scale-[1.03] shadow-[0_0_15px_rgba(214,122,24,0.5)] z-10' : ''
+          }`}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-sm bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <Clock size={18} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Late</p>
-              <p className="text-xl font-black text-slate-800 mt-0.5">{totalLate}</p>
-            </div>
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.12"
+            />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{ y: [0, -4, 4, 0] }}
+              transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.07"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.15"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/10 relative z-10">
+            <Clock size={15} />
           </div>
-          <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-md border border-amber-100">
-            Delayed
-          </span>
+          <div className="relative z-10">
+            <p className="text-[9px] font-bold text-amber-100 uppercase tracking-widest">Late</p>
+            <p className="text-base font-black text-white">{totalLate}</p>
+          </div>
         </motion.div>
 
+        {/* Session Rate Card */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.26, ease: "easeOut" }}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white p-5 rounded-sm border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:border-indigo-400 hover:shadow-[0_15px_30px_rgba(99,102,241,0.08)] transition-all duration-300 flex flex-col justify-center cursor-pointer group"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          onClick={() => setStatusFilter('All')}
+          className="bg-gradient-to-br from-[#E8C5AF] to-[#CD9B7F] p-4 rounded-2xl border border-white/20 shadow-[-6px_-6px_16px_rgba(255,255,255,0.55),_8px_8px_16px_rgba(205,155,127,0.28),_inset_2px_2px_4px_rgba(255,255,255,0.35),_inset_-2px_-2px_4px_rgba(0,0,0,0.18)] flex items-center gap-3 relative overflow-hidden group hover:shadow-[-8px_-8px_20px_rgba(255,255,255,0.65),_10px_10px_20px_rgba(205,155,127,0.38)] transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
         >
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-sm bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <TrendingUp size={13} />
-              </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Session Rate</p>
-            </div>
-            <span className="text-xs font-black text-indigo-600">{attendanceRate}%</span>
-          </div>
-          <div className="w-full bg-slate-100 h-1.5 rounded overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${attendanceRate}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="bg-indigo-600 h-full rounded"
+          {/* SVG Silk Wave Accents with water wave animation */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52 L105,105 L-5,105 Z"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.16"
             />
+            <motion.path
+              d="M-5,90 C45,95 75,72 105,62 L105,105 L-5,105 Z"
+              animate={{ y: [0, -4, 4, 0] }}
+              transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+              fill="#ffffff"
+              opacity="0.09"
+            />
+            <motion.path
+              d="M-5,82 C35,92 65,62 105,52"
+              animate={{ y: [0, 4, -4, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="0.5"
+              opacity="0.2"
+            />
+          </svg>
+
+          <div className="w-8 h-8 rounded-xl bg-white/30 text-[#604230] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/15 relative z-10">
+            <TrendingUp size={15} />
+          </div>
+          <div className="relative z-10 flex-1">
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] font-bold text-[#825C44] uppercase tracking-widest">Session Rate</p>
+              <p className="text-sm font-black text-[#604230]">{attendanceRate}%</p>
+            </div>
+            <div className="w-full bg-[#FAF8F5]/40 h-1.5 rounded overflow-hidden mt-1 border border-white/5">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${attendanceRate}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                className="bg-[#6B805B] h-full rounded"
+              />
+            </div>
           </div>
         </motion.div>
       </div>
@@ -621,100 +724,297 @@ export default function AttendancePage() {
         </motion.div>
       )}
 
-      {/* Main interactive controls: Search, Filters, Sorters, Bulk Actions & Density */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="bg-white p-4 rounded-sm border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
-          {/* Search box */}
-          <div className="relative flex-1 max-w-sm">
-            <input
-              type="text"
-              placeholder="Search employees by name or ID..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-sm text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-slate-400 font-semibold"
-            />
-            <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+      {/* Two-Column Dashboard Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-2">
+        {/* Left Column */}
+        <div className="lg:col-span-4 flex flex-col gap-6 self-start w-full">
+          {/* Premium Calendar Selector Card */}
+          <motion.div
+            initial={{ opacity: 0, x: -15 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="w-full bg-[#EDE3CE] border border-white/60 rounded-[32px] p-5 md:p-6 shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] flex flex-col gap-4"
+          >
+          {/* Header Row: Title & Month Dropdown */}
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col">
+              <h2 className="text-xl font-extrabold text-[#4E5B2E] tracking-tight leading-tight">Upcoming Shifts</h2>
+              <div className="flex items-center gap-1.5 text-[#FDA769] font-bold text-xs mt-1.5">
+                <UserCheck size={14} className="stroke-[2.5]" />
+                <span>{persons.length} staff • {selectedDateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}</span>
+              </div>
+            </div>
+
+            {/* Calendar Picker Box */}
+            <div className="relative">
+              <button
+                onClick={() => setShowCalendarPopover(!showCalendarPopover)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF8F5] border border-[#EADFC9]/40 rounded-full text-xs font-bold text-slate-750 shadow-sm hover:bg-white hover:border-[#FDA769]/45 transition-all cursor-pointer"
+              >
+                <Calendar size={13} className="text-[#FDA769] shrink-0" />
+                <span>{selectedDateObj.toLocaleDateString('en-US', { month: 'long' })}</span>
+                <ChevronDown size={13} className="text-[#FDA769] shrink-0" />
+              </button>
+
+              <AnimatePresence>
+                {showCalendarPopover && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40 bg-transparent"
+                      onClick={() => setShowCalendarPopover(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scaleY: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                      exit={{ opacity: 0, y: -8, scaleY: 0.95 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="absolute right-0 top-full mt-2 z-50 bg-[#8A9A5B] border border-[#7D8C50] rounded-2xl shadow-2xl p-4 w-72 text-white font-sans origin-top"
+                    >
+                      {/* Month Selector Navigation Row */}
+                      <div className="flex items-center justify-between mb-4 select-none">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                          }}
+                          className="p-1 hover:bg-white/10 rounded-full text-white cursor-pointer transition-all duration-200 active:scale-90"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span className="text-xs font-black tracking-widest uppercase">
+                          {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                          }}
+                          className="p-1 hover:bg-white/10 rounded-full text-white cursor-pointer transition-all duration-200 active:scale-90"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+
+                      {/* Days of Week Header Row */}
+                      <div className="grid grid-cols-7 gap-1 text-center mb-2 select-none">
+                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+                          <span key={idx} className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
+                            {day}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Calendar Days Grid */}
+                      <div className="grid grid-cols-7 gap-y-1.5 gap-x-1 text-center">
+                        {getCalendarDays(calendarMonth).map(({ date: cellDate, isCurrentMonth }, i) => {
+                          const isSelected = isSameDay(cellDate, selectedDateObj);
+                          const isCellToday = isSameDay(cellDate, new Date());
+
+                          let btnClass = "text-xs h-7 w-7 flex items-center justify-center rounded-full font-bold transition-all duration-200 cursor-pointer relative ";
+
+                          if (isSelected) {
+                            btnClass += "bg-[#4E5B2E] text-white font-extrabold shadow-sm";
+                          } else if (isCurrentMonth) {
+                            btnClass += "text-white hover:bg-white/10";
+                          } else {
+                            btnClass += "text-white/30 hover:bg-white/5";
+                          }
+
+                          return (
+                            <div key={i} className="flex justify-center items-center relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDate(cellDate.toISOString().split('T')[0]);
+                                  setShowCalendarPopover(false);
+                                }}
+                                className={btnClass}
+                              >
+                                {cellDate.getDate()}
+                                {isCellToday && !isSelected && (
+                                  <span className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
-          {/* Status filter pills */}
-          <div className="flex items-center gap-1 overflow-x-auto py-0.5">
-            {(['All', 'Present', 'Absent', 'Late'] as const).map(filter => {
-              const isSelected = statusFilter === filter;
-              const count = filter === 'All'
-                ? persons.length
-                : Object.values(records).filter(r => r.status === filter).length;
-
+          {/* White Day Strip Container */}
+          <div className="bg-white rounded-[24px] p-3 shadow-sm border border-slate-100/50 flex justify-between items-center mt-1">
+            {getDaysOfWeek(date).slice(0, 6).map((day) => {
+              const isSelected = day.dateStr === date;
               return (
                 <button
-                  key={filter}
-                  onClick={() => setStatusFilter(filter)}
-                  className={`px-3 py-1.5 rounded-sm text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${isSelected
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-50 border border-slate-100 text-slate-500 hover:text-slate-800'
-                    }`}
+                  key={day.dateStr}
+                  onClick={() => setDate(day.dateStr)}
+                  className={`w-11 h-11 flex flex-col items-center justify-center rounded-full transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#DFFE4A] text-slate-900 border border-[#C6EE3C]/40 font-extrabold shadow-sm scale-105'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:scale-105'
+                  }`}
                 >
-                  {filter} <span className={`ml-0.5 px-1 py-0.2 rounded text-[9px] ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
-                    }`}>{count}</span>
+                  <span className="text-xs font-black tracking-tight leading-none">
+                    {day.dayNum}
+                  </span>
+                  <span className={`text-[8.5px] font-bold mt-0.5 ${isSelected ? 'text-slate-700' : 'text-slate-400'}`}>
+                    {day.dayName}
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
 
-        {/* Right controls: Sorting + Bulk Actions + Density + View toggles */}
-        <div className="flex flex-wrap items-center gap-3 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100">
+          {/* Dots Timeline Indicator */}
+          <div className="flex items-center justify-center gap-1.5 mt-1 relative">
+            <div className="absolute left-[10%] right-[10%] top-1/2 h-[1px] border-t border-dashed border-[#EADFC9]/60 -translate-y-1/2 z-0" />
+            <div className="flex justify-between w-4/5 relative z-10">
+              {getDaysOfWeek(date).slice(0, 6).map((day) => {
+                const isSelected = day.dateStr === date;
+                return (
+                  <div
+                    key={day.dateStr}
+                    onClick={() => setDate(day.dateStr)}
+                    className={`w-1.5 h-1.5 rounded-full cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-slate-900 scale-125'
+                        : 'bg-[#DDD5C7] hover:bg-[#CD9B7F]'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Today, Yesterday, and arrows navigation footer */}
+          <div className="flex items-center justify-between border-t border-[#EADFC9]/30 pt-3.5 mt-1">
+            <button
+              onClick={() => setDate(new Date().toISOString().split('T')[0])}
+              className={`px-3 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer ${
+                date === new Date().toISOString().split('T')[0]
+                  ? 'bg-[#6B805B] text-white shadow-sm border border-[#8FA47F]/20'
+                  : 'bg-[#FAF8F5] border border-[#EADFC9]/30 text-[#FDA769] hover:bg-white'
+              }`}
+            >
+              Today
+            </button>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => changeDate(-7)}
+                title="Previous Week"
+                className="p-1.5 bg-[#FAF8F5] hover:bg-white rounded-xl text-[#FDA769] border border-[#EADFC9]/30 shadow-sm transition-all hover:scale-105 cursor-pointer"
+              >
+                <ChevronLeft size={14} className="stroke-[3]" />
+              </button>
+              <button
+                onClick={() => changeDate(7)}
+                title="Next Week"
+                className="p-1.5 bg-[#FAF8F5] hover:bg-white rounded-xl text-[#FDA769] border border-[#EADFC9]/30 shadow-sm transition-all hover:scale-105 cursor-pointer"
+              >
+                <ChevronRight size={14} className="stroke-[3]" />
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                setDate(yesterday.toISOString().split('T')[0]);
+              }}
+              className={`px-3 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer ${
+                date === new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0]
+                  ? 'bg-[#6B805B] text-white shadow-sm border border-[#8FA47F]/20'
+                  : 'bg-[#FAF8F5] border border-[#EADFC9]/30 text-[#FDA769] hover:bg-white'
+              }`}
+            >
+              Yesterday
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Shift Actions Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className="bg-[#EDE3CE] border border-white/60 rounded-[32px] p-5 shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] flex flex-col gap-3"
+        >
+          <div className="flex flex-col">
+            <h3 className="text-xs font-extrabold text-[#4E5B2E] uppercase tracking-wider">Shift Actions</h3>
+            <p className="text-[10px] text-slate-500 font-bold mt-1 leading-normal">
+              {!isToday
+                ? "Attendance records are locked for past/future dates."
+                : isWeekend
+                  ? "No attendance logging is required on weekends."
+                  : hasUnsavedChanges
+                    ? "Unsaved changes detected. Click below to apply shifts."
+                    : "All attendance records are up to date."}
+            </p>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving || loading || persons.length === 0 || isWeekend || !isToday}
+            className={`w-full flex items-center justify-center gap-2 font-bold text-xs py-3.5 px-5 rounded-2xl transition-all shadow-sm ${
+              hasUnsavedChanges && isToday
+                ? 'bg-gradient-to-br from-[#8FA47F] to-[#6B805B] text-white border border-white/20 shadow-[0_4px_12px_rgba(107,128,91,0.2)] hover:shadow-[0_6px_16px_rgba(107,128,91,0.35)] cursor-pointer hover:-translate-y-0.5 active:translate-y-0'
+                : 'bg-[#FAF8F5] text-[#6B805B]/50 border border-[#6B805B]/35 cursor-not-allowed shadow-[inset_1px_1px_3px_rgba(165,155,135,0.05)] opacity-85'
+            } transition-all duration-300`}
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            <span>{saving ? 'Saving...' : 'Save Records'}</span>
+          </button>
+        </motion.div>
+      </div>
+
+        {/* Right Column: Main Roster Container */}
+        <motion.div
+          initial={{ opacity: 0, x: 15 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+          className="lg:col-span-8 bg-[#EDE3CE] border border-white/60 rounded-[32px] overflow-visible shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] flex flex-col p-5 md:p-6 gap-6"
+        >
+        {/* Unified, Compact Filter Toolbar - Single Row */}
+        <div className="w-full flex items-center gap-1.5 pb-4 border-b border-[#EADFC9]/60 flex-wrap">
+          {/* Search box */}
+          <div className="relative p-0.5 bg-[#FAF8F5] border border-[#EADFC9]/50 rounded-[14px] shadow-[inset_1px_1px_2px_rgba(165,155,135,0.04)]">
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-7 pr-2 py-1.5 bg-[#E4ECD9] text-[#5C6E4E] font-bold text-[11px] placeholder-[#5C6E4E]/60 rounded-[10px] focus:outline-none transition-all shadow-[inset_1px_1px_2px_rgba(107,128,91,0.06)] min-w-[100px] max-w-[140px]"
+            />
+            <Search size={11} className="absolute left-2.5 top-2.5 text-[#5C6E4E]" />
+          </div>
+
+          <div className="h-4 w-[1px] bg-[#EADFC9]/30" />
 
           {/* Sort Controller */}
-          <div className="flex items-center gap-1.5 border border-slate-200/80 rounded-sm px-2.5 py-1.5 bg-slate-50/50 shrink-0">
-            <ArrowUpDown size={13} className="text-slate-400" />
+          <div className="flex items-center gap-1 border border-[#EADFC9]/30 rounded-xl px-2 py-1.5 bg-[#FAF8F5]/60 shadow-[inset_1px_1px_3px_rgba(165,155,135,0.08)]">
+            <ArrowUpDown size={10} className="text-[#FDA769]" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-transparent border-none text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent border-none text-[10px] font-bold text-[#FDA769] focus:outline-none cursor-pointer"
             >
               <option value="name">Name</option>
-              <option value="id">Employee ID</option>
+              <option value="id">ID</option>
               <option value="status">Status</option>
             </select>
-            <button
-              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-              className="p-0.5 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-800 transition-all cursor-pointer font-black text-xs leading-none"
-              title={sortOrder === 'asc' ? 'Sort Ascending' : 'Sort Descending'}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </button>
           </div>
 
-          {/* Size / Density Toggler */}
-          <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-sm shrink-0">
-            <button
-              onClick={() => setCardSize('compact')}
-              className={`px-2.5 py-1.2 rounded-sm text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'compact'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-400 hover:text-slate-700'
-                }`}
-              title="Compact View"
-            >
-              Compact
-            </button>
-            <button
-              onClick={() => setCardSize('comfortable')}
-              className={`px-2.5 py-1.2 rounded-sm text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'comfortable'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-400 hover:text-slate-700'
-                }`}
-              title="Comfortable View"
-            >
-              Spacious
-            </button>
-          </div>
-
-          <div className="h-5 w-[1px] bg-slate-200 hidden sm:block" />
+          <div className="h-4 w-[1px] bg-[#EADFC9]/30" />
 
           {/* Bulk Actions */}
           <div className="flex items-center gap-1">
@@ -722,58 +1022,80 @@ export default function AttendancePage() {
               onClick={markAllPresent}
               title="Mark All Present"
               disabled={!isToday}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-[10px] font-bold border border-emerald-250 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all disabled:opacity-40 disabled:hover:bg-emerald-50 cursor-pointer"
+              className="flex items-center gap-0.5 px-2 py-1.5 rounded-xl text-[9px] font-bold border border-[#8FA47F]/40 text-[#6B805B] bg-[#8FA47F]/10 hover:bg-[#8FA47F]/20 transition-all disabled:opacity-40 cursor-pointer"
             >
-              <CheckCircle2 size={12} /> Present
+              <CheckCircle2 size={9} /> Present
             </button>
-
             <button
               onClick={markAllAbsent}
               title="Mark All Absent"
               disabled={!isToday}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-[10px] font-bold border border-rose-250 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all disabled:opacity-40 disabled:hover:bg-rose-50 cursor-pointer"
+              className="flex items-center gap-0.5 px-2 py-1.5 rounded-xl text-[9px] font-bold border border-[#E5B5B8]/40 text-[#7A494B] bg-[#E5B5B8]/10 hover:bg-[#E5B5B8]/20 transition-all disabled:opacity-40 cursor-pointer"
             >
-              <XCircle size={12} /> Absent
-            </button>
-
-            <button
-              onClick={resetToOriginal}
-              title="Reset"
-              disabled={!hasUnsavedChanges || !isToday}
-              className="p-1.5 rounded-sm border border-slate-200 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all cursor-pointer"
-            >
-              <RotateCcw size={13} />
+              <XCircle size={9} /> Absent
             </button>
           </div>
 
-          <div className="h-5 w-[1px] bg-slate-200 hidden sm:block" />
+          <div className="h-4 w-[1px] bg-[#EADFC9]/30" />
+
+          {/* Bulk In/Out Time */}
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 border border-[#8FA47F]/30 rounded-xl px-1.5 py-1 bg-[#8FA47F]/10">
+              <Clock size={9} className="text-[#6B805B]" />
+              <span className="text-[8px] font-bold text-[#6B805B] uppercase">In</span>
+              <input
+                type="time"
+                value={bulkInTime}
+                onChange={e => {
+                  setBulkInTime(e.target.value);
+                  applyBulkTime('checkInTime', e.target.value);
+                }}
+                disabled={!isToday}
+                className="bg-transparent border-none text-[10px] font-bold text-[#6B805B] focus:outline-none cursor-pointer disabled:opacity-40 w-[55px]"
+              />
+            </div>
+            <div className="flex items-center gap-1 border border-[#E5B5B8]/30 rounded-xl px-1.5 py-1 bg-[#E5B5B8]/10">
+              <Clock size={9} className="text-[#7A494B]" />
+              <span className="text-[8px] font-bold text-[#7A494B] uppercase">Out</span>
+              <input
+                type="time"
+                value={bulkOutTime}
+                onChange={e => {
+                  setBulkOutTime(e.target.value);
+                  applyBulkTime('checkOutTime', e.target.value);
+                }}
+                disabled={!isToday}
+                className="bg-transparent border-none text-[10px] font-bold text-[#7A494B] focus:outline-none cursor-pointer disabled:opacity-40 w-[55px]"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1" />
 
           {/* View Mode */}
-          <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-sm">
+          <div className="flex items-center gap-0.5 p-0.5 bg-[#FAF8F5] border border-[#EADFC9]/30 rounded-xl shadow-[inset_1px_1px_3px_rgba(165,155,135,0.08)]">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-sm transition-all cursor-pointer ${viewMode === 'grid'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-400 hover:text-slate-700'
+              className={`p-1 rounded-lg transition-all cursor-pointer ${viewMode === 'grid'
+                ? 'bg-white text-[#6B805B] shadow-sm'
+                : 'text-[#FDA769]/60 hover:text-[#FDA769]'
                 }`}
               title="Grid View"
             >
-              <LayoutGrid size={13} />
+              <LayoutGrid size={11} />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-sm transition-all cursor-pointer ${viewMode === 'list'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-400 hover:text-slate-700'
+              className={`p-1 rounded-lg transition-all cursor-pointer ${viewMode === 'list'
+                ? 'bg-white text-[#6B805B] shadow-sm'
+                : 'text-[#FDA769]/60 hover:text-[#FDA769]'
                 }`}
               title="Sheet View"
             >
-              <List size={13} />
+              <List size={11} />
             </button>
           </div>
-
         </div>
-      </motion.div>
 
       {/* Main Roster Body */}
       <div className="min-h-[400px]">
@@ -781,18 +1103,18 @@ export default function AttendancePage() {
           /* Shimmer Skeletons */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="bg-white p-4 rounded-sm border border-slate-100 shadow-sm flex flex-col gap-3 animate-pulse">
+              <div key={i} className="bg-white/80 backdrop-blur-sm p-4.5 rounded-2xl border border-white/20 shadow-sm flex flex-col gap-3.5 animate-pulse">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded bg-slate-200" />
+                  <div className="w-10 h-10 rounded-xl bg-slate-200/60" />
                   <div className="flex-1">
-                    <div className="h-3.5 bg-slate-200 rounded w-3/4 mb-1.5" />
-                    <div className="h-2.5 bg-slate-200 rounded w-1/2" />
+                    <div className="h-3.5 bg-slate-200/60 rounded w-3/4 mb-1.5" />
+                    <div className="h-2.5 bg-slate-200/60 rounded w-1/2" />
                   </div>
                 </div>
-                <div className="h-7 bg-slate-100 rounded-sm" />
+                <div className="h-7 bg-slate-150/50 rounded-xl" />
                 <div className="flex gap-2">
-                  <div className="h-7 bg-slate-100 rounded-sm flex-1" />
-                  <div className="h-7 bg-slate-100 rounded-sm flex-1" />
+                  <div className="h-7 bg-slate-150/50 rounded-xl flex-1" />
+                  <div className="h-7 bg-slate-150/50 rounded-xl flex-1" />
                 </div>
               </div>
             ))}
@@ -802,9 +1124,9 @@ export default function AttendancePage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white border border-slate-200/80 rounded-sm p-10 text-center shadow-sm max-w-md mx-auto flex flex-col items-center gap-3 mt-6"
+            className="bg-white/80 backdrop-blur-sm border border-[#EADFC9]/30 rounded-2xl p-10 text-center shadow-sm max-w-md mx-auto flex flex-col items-center gap-3 mt-6"
           >
-            <div className="w-14 h-14 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-[#F5F2EB] text-[#FDA769] flex items-center justify-center border border-[#EADFC9]/40 shadow-sm">
               <Search size={24} />
             </div>
             <div>
@@ -816,7 +1138,7 @@ export default function AttendancePage() {
             {statusFilter !== 'All' && (
               <button
                 onClick={() => setStatusFilter('All')}
-                className="mt-1 px-3.5 py-1.5 bg-indigo-600 text-white rounded-sm text-[10px] font-bold shadow-sm hover:bg-indigo-700 transition-all cursor-pointer"
+                className="mt-1 px-4 py-2 bg-[#6B805B] text-white rounded-xl text-[10px] font-bold shadow-sm hover:bg-[#5A6E4B] transition-all cursor-pointer"
               >
                 Clear Status Filters
               </button>
@@ -840,26 +1162,26 @@ export default function AttendancePage() {
                 <motion.div
                   key={person._id}
                   variants={listItemVariants}
-                  whileHover={{ y: -3, boxShadow: '0 8px 12px -3px rgba(0, 0, 0, 0.05)' }}
-                  className={`bg-white rounded-sm border transition-all relative overflow-hidden flex flex-col ${isCompact ? 'p-3.5 gap-2.5' : 'p-4.5 gap-3.5'
+                  whileHover={{ y: -3, boxShadow: '0 12px 20px -8px rgba(107,128,91,0.12)' }}
+                  className={`bg-white/90 backdrop-blur-sm rounded-2xl border transition-all relative overflow-hidden flex flex-col ${isCompact ? 'p-3.5 gap-2.5' : 'p-4.5 gap-3.5'
                     } ${isAbsent
-                      ? 'border-slate-100 opacity-90'
+                      ? 'border-[#EADFC9]/20 opacity-90'
                       : rec.status === 'Present'
-                        ? 'border-emerald-100 shadow-sm hover:border-emerald-300'
-                        : 'border-amber-100 shadow-sm hover:border-amber-300'
+                        ? 'border-[#8FA47F]/45 shadow-sm shadow-[#8FA47F]/5 hover:border-[#6B805B]/65'
+                        : 'border-[#FDA769]/35 shadow-sm shadow-[#FDA769]/5 hover:border-[#F4A236]/60'
                     }`}
                 >
                   {/* Top visual strip color indicator */}
-                  <div className={`absolute top-0 left-0 right-0 h-0.5 ${isAbsent
-                    ? 'bg-slate-200'
+                  <div className={`absolute top-0 left-0 right-0 h-1.5 ${isAbsent
+                    ? 'bg-slate-300'
                     : rec.status === 'Present'
-                      ? 'bg-emerald-500'
-                      : 'bg-amber-500'
+                      ? 'bg-[#6B805B]'
+                      : 'bg-[#F4A236]'
                     }`} />
 
                   {/* Profile Header */}
-                  <div className="flex items-center gap-3">
-                    <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className={`rounded-xl bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
                       }`}>
                       {person.name.charAt(0)}
                     </div>
@@ -875,7 +1197,7 @@ export default function AttendancePage() {
                   </div>
 
                   {/* Quick Select Buttons */}
-                  <div className="bg-slate-50/80 border border-slate-100 p-0.5 rounded-sm flex items-center gap-0.5">
+                  <div className="bg-[#F5F2EB]/65 border border-[#EADFC9]/35 p-0.5 rounded-xl flex items-center gap-0.5">
                     {(['Present', 'Absent', 'Late'] as const).map((st) => {
                       const isActive = rec.status === st;
                       return (
@@ -884,14 +1206,14 @@ export default function AttendancePage() {
                           onClick={() => handleStatusChange(person._id, st)}
                           disabled={!isToday}
                           type="button"
-                          className={`flex-1 rounded-md font-bold transition-all flex items-center justify-center gap-0.5 cursor-pointer ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-[11px]'
+                          className={`flex-1 rounded-lg font-bold transition-all flex items-center justify-center gap-0.5 cursor-pointer ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-[11px]'
                             } ${isActive
                               ? st === 'Present'
-                                ? 'bg-emerald-600 text-white shadow-sm'
+                                ? 'bg-[#6B805B] text-white shadow-sm'
                                 : st === 'Absent'
-                                  ? 'bg-rose-600 text-white shadow-sm'
-                                  : 'bg-amber-50 text-white shadow-sm'
-                              : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/50'
+                                  ? 'bg-[#C9979A] text-[#7A494B] shadow-sm'
+                                  : 'bg-[#D67A18] text-white shadow-sm'
+                              : 'text-[#FDA769]/70 hover:text-[#FDA769] hover:bg-[#FAF8F5]/85'
                             } disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed`}
                         >
                           {st === 'Present' && <CheckCircle2 size={isCompact ? 10 : 12} />}
@@ -903,46 +1225,40 @@ export default function AttendancePage() {
                     })}
                   </div>
 
-                  {/* Settings Box: CheckIn, CheckOut, Early Switch */}
-                  <div className="flex flex-col gap-2 pt-0.5">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex flex-col gap-0.5">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">In</label>
-                        <input
-                          type="time"
-                          value={rec.checkInTime}
-                          onChange={(e) => handleTimeChange(person._id, 'checkInTime', e.target.value)}
-                          disabled={isAbsent || !isToday}
-                          className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-semibold"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-0.5">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Out</label>
-                        <input
-                          type="time"
-                          value={rec.checkOutTime}
-                          onChange={(e) => handleTimeChange(person._id, 'checkOutTime', e.target.value)}
-                          disabled={isAbsent || !isToday}
-                          className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-semibold"
-                        />
-                      </div>
+                  {/* In/Out Time - Compact inline row */}
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex-1 flex items-center gap-1 border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl px-2 py-1">
+                      <span className="text-[8px] font-bold text-[#6B805B] uppercase">In</span>
+                      <input
+                        type="time"
+                        value={rec.checkInTime}
+                        onChange={(e) => handleTimeChange(person._id, 'checkInTime', e.target.value)}
+                        disabled={isAbsent || !isToday}
+                        className="w-full bg-transparent border-none text-[10px] text-[#6B805B] focus:outline-none disabled:opacity-40 font-bold"
+                      />
                     </div>
-
-                    {isAbsent && (
-                      <div className="flex flex-col gap-0.5 mt-1">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Reason for Leave</label>
-                        <input
-                          type="text"
-                          value={rec.leaveReason}
-                          onChange={(e) => handleLeaveReasonChange(person._id, e.target.value)}
-                          disabled={!isToday}
-                          placeholder={isToday ? "E.g. Sick, Vacation" : "-"}
-                          className="w-full border border-slate-200 rounded-sm px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 font-semibold bg-rose-50/30 disabled:opacity-50"
-                        />
-                      </div>
-                    )}
+                    <div className="flex-1 flex items-center gap-1 border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl px-2 py-1">
+                      <span className="text-[8px] font-bold text-[#7A494B] uppercase">Out</span>
+                      <input
+                        type="time"
+                        value={rec.checkOutTime}
+                        onChange={(e) => handleTimeChange(person._id, 'checkOutTime', e.target.value)}
+                        disabled={isAbsent || !isToday}
+                        className="w-full bg-transparent border-none text-[10px] text-[#7A494B] focus:outline-none disabled:opacity-40 font-bold"
+                      />
+                    </div>
                   </div>
+
+                  {isAbsent && (
+                    <input
+                      type="text"
+                      value={rec.leaveReason}
+                      onChange={(e) => handleLeaveReasonChange(person._id, e.target.value)}
+                      disabled={!isToday}
+                      placeholder={isToday ? "Leave reason..." : "-"}
+                      className="w-full border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl px-2 py-1 text-[10px] text-[#FDA769] focus:outline-none focus:ring-2 focus:ring-[#FDA769]/20 font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)] disabled:opacity-50"
+                    />
+                  )}
 
                 </motion.div>
               );
@@ -954,45 +1270,45 @@ export default function AttendancePage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-white border border-slate-200 rounded-sm overflow-hidden shadow-sm"
+            className="bg-white/80 backdrop-blur-sm border border-white/40 rounded-2xl overflow-hidden shadow-sm"
           >
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200/80">
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                  <tr className="bg-[#FAF8F5]/85 border-b border-[#EADFC9]/30">
+                    <th className={`font-bold text-[#FDA769] text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                       }`}>
                       SVU Employee
                     </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest text-center ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                    <th className={`font-bold text-[#FDA769] text-[10px] uppercase tracking-widest text-center ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                       }`}>
                       Status Control
                     </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                    <th className={`font-bold text-[#FDA769] text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                       }`}>
                       In-Time
                     </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                    <th className={`font-bold text-[#FDA769] text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                       }`}>
                       Out-Time
                     </th>
-                    <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                    <th className={`font-bold text-[#FDA769] text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                       }`}>
                       Leave Reason
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#EADFC9]/20 bg-white/40">
                   {sortedPersons.map((person) => {
                     const rec = records[person._id] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: '' };
                     const isAbsent = rec.status === 'Absent';
                     const isCompact = cardSize === 'compact';
 
                     return (
-                      <tr key={person._id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={person._id} className="hover:bg-[#FAF8F5]/60 transition-colors border-b border-[#EADFC9]/25">
                         <td className={`flex items-center gap-3 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'
                           }`}>
-                          <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)} ${isCompact ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
+                          <div className={`rounded-xl bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)} ${isCompact ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
                             }`}>
                             {person.name.charAt(0)}
                           </div>
@@ -1003,7 +1319,7 @@ export default function AttendancePage() {
                           </div>
                         </td>
                         <td className={`text-center ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'}`}>
-                          <div className="inline-flex items-center gap-0.5 bg-slate-100 border border-slate-200/50 p-0.5 rounded-sm">
+                          <div className="inline-flex items-center gap-0.5 bg-[#F5F2EB]/65 border border-[#EADFC9]/30 p-0.5 rounded-xl">
                             {(['Present', 'Absent', 'Late'] as const).map(st => {
                               const isActive = rec.status === st;
                               return (
@@ -1011,14 +1327,14 @@ export default function AttendancePage() {
                                   key={st}
                                   onClick={() => handleStatusChange(person._id, st)}
                                   disabled={!isToday}
-                                  className={`flex items-center gap-0.5 rounded-sm font-bold transition-all cursor-pointer ${isCompact ? 'px-2.5 py-1 text-[9px]' : 'px-4 py-1.5 text-xs'
+                                  className={`flex items-center gap-0.5 rounded-lg font-bold transition-all cursor-pointer ${isCompact ? 'px-2.5 py-1 text-[9px]' : 'px-4 py-1.5 text-xs'
                                     } ${isActive
                                       ? st === 'Present'
-                                        ? 'bg-emerald-600 text-white shadow-sm'
+                                        ? 'bg-[#6B805B] text-white shadow-sm'
                                         : st === 'Absent'
-                                          ? 'bg-rose-600 text-white shadow-sm'
-                                          : 'bg-amber-50 text-white shadow-sm'
-                                      : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/40'
+                                          ? 'bg-[#C9979A] text-[#7A494B] shadow-sm'
+                                          : 'bg-[#D67A18] text-white shadow-sm'
+                                      : 'text-[#FDA769]/70 hover:text-[#FDA769] hover:bg-white/50'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                   {st === 'Present' && <CheckCircle2 size={isCompact ? 10 : 12} />}
@@ -1036,7 +1352,7 @@ export default function AttendancePage() {
                             value={rec.checkInTime}
                             onChange={(e) => handleTimeChange(person._id, 'checkInTime', e.target.value)}
                             disabled={isAbsent || !isToday}
-                            className={`border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+                            className={`border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl text-[#FDA769] focus:outline-none focus:ring-2 focus:ring-[#FDA769]/20 focus:border-[#FDA769] disabled:opacity-40 disabled:bg-[#FAF8F5]/40 font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)] ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
                               }`}
                           />
                         </td>
@@ -1046,7 +1362,7 @@ export default function AttendancePage() {
                             value={rec.checkOutTime}
                             onChange={(e) => handleTimeChange(person._id, 'checkOutTime', e.target.value)}
                             disabled={isAbsent || !isToday}
-                            className={`border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+                            className={`border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl text-[#FDA769] focus:outline-none focus:ring-2 focus:ring-[#FDA769]/20 focus:border-[#FDA769] disabled:opacity-40 disabled:bg-[#FAF8F5]/40 font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)] ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
                               }`}
                           />
                         </td>
@@ -1057,8 +1373,8 @@ export default function AttendancePage() {
                             onChange={(e) => handleLeaveReasonChange(person._id, e.target.value)}
                             disabled={!isAbsent || !isToday}
                             placeholder={isAbsent && isToday ? "Reason" : ""}
-                            className={`w-full border border-slate-200 rounded-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50 disabled:opacity-40 disabled:bg-slate-50 font-bold ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
-                              } ${isAbsent ? 'bg-rose-50/30' : ''}`}
+                            className={`w-full border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl text-[#FDA769] focus:outline-none focus:ring-2 focus:ring-[#FDA769]/20 focus:border-[#FDA769] disabled:opacity-40 disabled:bg-[#FAF8F5]/40 font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)] ${isCompact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+                              } ${isAbsent ? 'bg-[#FAF8F5]/30' : ''}`}
                           />
                         </td>
                       </tr>
@@ -1069,6 +1385,8 @@ export default function AttendancePage() {
             </div>
           </motion.div>
         )}
+      </div>
+      </motion.div>
       </div>
 
     </div>
