@@ -9,17 +9,12 @@ export default function GlobalLoader() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Only trigger loading sequence if we're on the analytics page (root '/')
-    if (pathname === '/') {
-      setLoading(true);
-      const timer = setTimeout(() => {
-        setLoading(false);
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    } else {
+    setLoading(true);
+    const timer = setTimeout(() => {
       setLoading(false);
-    }
+    }, 1500);
+
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   return (
@@ -31,14 +26,25 @@ export default function GlobalLoader() {
           transition={{ duration: 0.5, ease: "easeInOut" }}
           className="fixed inset-0 z-[9999] bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center"
         >
-          {/* Aesthetic 3D spinner */}
-          <div className="spinner">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
+          {/* Aesthetic multi-shape loader */}
+          <div className="flex items-center justify-center scale-90">
+            <div className="loader">
+              <svg viewBox="0 0 80 80">
+                <circle r="32" cy="40" cx="40" id="test"></circle>
+              </svg>
+            </div>
+
+            <div className="loader triangle">
+              <svg viewBox="0 0 86 80">
+                <polygon points="43 8 79 72 7 72"></polygon>
+              </svg>
+            </div>
+
+            <div className="loader">
+              <svg viewBox="0 0 80 80">
+                <rect height="64" width="64" y="8" x="8"></rect>
+              </svg>
+            </div>
           </div>
           
           <motion.p 

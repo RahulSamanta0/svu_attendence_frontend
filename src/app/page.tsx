@@ -21,7 +21,8 @@ import {
   XCircle,
   AlertCircle,
   Sparkles,
-  Check
+  Check,
+  Plane
 } from 'lucide-react';
 
 
@@ -45,49 +46,7 @@ type Toast = {
   type: 'success' | 'error' | 'info';
 };
 
-// Seamless loop animated starry layer component using Framer Motion
-function StarLayer({ duration, size, count }: { duration: number; size: number; count: number }) {
-  const [shadows, setShadows] = useState('');
 
-  useEffect(() => {
-    const arr = [];
-    for (let i = 0; i < count; i++) {
-      const x = Math.floor(Math.random() * 2000);
-      const y = Math.floor(Math.random() * 2000);
-      arr.push(`${x}px ${y}px #fff`);
-    }
-    setShadows(arr.join(', '));
-  }, [count]);
-
-  if (!shadows) return null;
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <motion.div
-        animate={{ y: [0, -2000] }}
-        transition={{ ease: "linear", duration, repeat: Infinity }}
-        className="absolute bg-transparent"
-        style={{
-          width: size,
-          height: size,
-          boxShadow: shadows,
-        }}
-      >
-        {/* Duplicate layer offset by 2000px for seamless infinite loop */}
-        <div
-          className="absolute bg-transparent"
-          style={{
-            width: size,
-            height: size,
-            boxShadow: shadows,
-            top: 2000,
-            left: 0,
-          }}
-        />
-      </motion.div>
-    </div>
-  );
-}
 
 export default function AnalyticsDashboard() {
   const router = useRouter();
@@ -153,7 +112,7 @@ export default function AnalyticsDashboard() {
       ]);
 
       const lookup: Record<string, ReportRow> = {};
-      
+
       let personsData = personsRes.data;
       let reportsData = reportsRes.data;
 
@@ -180,20 +139,27 @@ export default function AnalyticsDashboard() {
     return 'Software Developer';
   };
 
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
   const getAvatarGradient = (name: string) => {
     const gradients = [
-      'from-indigo-100/80 to-indigo-50 text-indigo-700 border-indigo-200/60 shadow-indigo-100/30',
-      'from-emerald-100/80 to-emerald-50 text-emerald-700 border-emerald-200/60 shadow-emerald-100/30',
-      'from-rose-100/80 to-rose-50 text-rose-700 border-rose-200/60 shadow-rose-100/30',
-      'from-amber-100/80 to-amber-50 text-amber-700 border-amber-200/60 shadow-amber-100/30',
-      'from-sky-100/80 to-sky-50 text-sky-700 border-sky-200/60 shadow-sky-100/30',
-      'from-fuchsia-100/80 to-fuchsia-50 text-fuchsia-700 border-fuchsia-200/60 shadow-fuchsia-100/30'
+      'from-indigo-100 to-indigo-50 text-indigo-700 border-indigo-200 shadow-indigo-100/30',
+      'from-emerald-100 to-emerald-50 text-emerald-700 border-emerald-200 shadow-emerald-100/30',
+      'from-rose-100 to-rose-50 text-rose-700 border-rose-200 shadow-rose-100/30',
+      'from-amber-100 to-amber-50 text-amber-700 border-amber-200 shadow-amber-100/30',
+      'from-sky-100 to-sky-50 text-sky-700 border-sky-200 shadow-sky-100/30',
+      'from-fuchsia-100 to-fuchsia-50 text-fuchsia-700 border-fuchsia-200 shadow-fuchsia-100/30'
     ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return gradients[Math.abs(hash) % gradients.length];
+    const firstChar = name.trim().charAt(0).toUpperCase();
+    const charCode = firstChar.charCodeAt(0) - 65;
+    const index = Math.max(0, Math.min(gradients.length - 1, Math.floor(charCode / 4.5)));
+    return gradients[index];
   };
 
   // KPIs
@@ -283,13 +249,6 @@ export default function AnalyticsDashboard() {
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800 relative z-10">
 
-      {/* Sky Starry Animated Background */}
-      <div className="absolute inset-0 -m-4 md:-m-8 -z-10 overflow-hidden pointer-events-none sky-stars-container">
-        <StarLayer duration={80} size={1} count={120} />
-        <StarLayer duration={140} size={1.5} count={80} />
-        <StarLayer duration={200} size={2.5} count={40} />
-      </div>
-
       {/* Toast Notification Container */}
       <div className="fixed top-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
         <AnimatePresence>
@@ -318,7 +277,7 @@ export default function AnalyticsDashboard() {
       <PageHeader
         title="Employee Attendance"
         subtitle="Analyse attendance records of employee"
-        variant="sky"
+        variant="green"
       />
 
       {/* KPI Cards Section matching Sage UI exactly */}
@@ -591,7 +550,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Filter and Query bar matching Sage screenshot */}
-      <div className="bg-white p-4.5 rounded-md border border-slate-200 shadow-sm flex flex-col gap-4 mt-1 relative">
+      <div className="bg-[#EDE3CE] border border-white/60 rounded-[32px] p-5 shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] flex flex-col gap-4 mt-1 relative">
 
         {/* Secondary Filter Line */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -602,9 +561,9 @@ export default function AnalyticsDashboard() {
               placeholder="Search anything ..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-sm text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/50 placeholder-slate-400 font-semibold"
+              className="w-full pl-9 pr-4 py-2 border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl text-xs focus:outline-none placeholder-[#5C6E4E]/60 font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)]"
             />
-            <Search size={14} className="absolute left-3 top-3.5 text-slate-400 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-3 text-[#5C6E4E] pointer-events-none" />
           </div>
 
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end relative">
@@ -612,17 +571,17 @@ export default function AnalyticsDashboard() {
             {/* Filter Roles dropdown */}
             <button
               onClick={() => setShowRoleFilter(prev => !prev)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-sm text-xs font-bold shadow-sm cursor-pointer shrink-0 transition-colors ${showRoleFilter
-                ? 'bg-indigo-50 border-indigo-250 text-indigo-755'
-                : 'bg-white border-slate-200 text-slate-605 hover:bg-slate-50'
+              className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-xl text-xs font-bold shadow-sm cursor-pointer shrink-0 transition-colors ${showRoleFilter
+                ? 'bg-[#6B805B] border-[#6B805B]/40 text-white'
+                : 'bg-[#FAF8F5] border-[#EADFC9]/40 text-[#FDA769] hover:bg-white'
                 }`}
             >
-              <SlidersHorizontal size={13} className={showRoleFilter ? 'text-indigo-600' : 'text-slate-400'} /> Filter Roles ({activeRoles.length})
+              <SlidersHorizontal size={13} className={showRoleFilter ? 'text-white' : 'text-[#FDA769]'} /> Filter Roles ({activeRoles.length})
             </button>
 
             {/* Date display card */}
-            <div className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 bg-white rounded-sm text-xs font-bold text-slate-600 shadow-sm shrink-0">
-              <Calendar size={13} className="text-slate-400" /> {format(new Date(), 'dd, MMMM yyyy')}
+            <div className="flex items-center gap-1.5 px-3.5 py-2 border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl text-xs font-bold text-[#FDA769] shadow-sm shrink-0">
+              <Calendar size={13} className="text-[#FDA769]" /> {format(new Date(), 'dd, MMMM yyyy')}
             </div>
 
             {/* Float Role Filters Overlay */}
@@ -632,13 +591,13 @@ export default function AnalyticsDashboard() {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-11 z-30 w-56 bg-white border border-slate-200 rounded-md shadow-xl p-4 flex flex-col gap-2.5"
+                  className="absolute right-0 top-11 z-30 w-56 bg-[#8A9A5B] border border-[#7D8C50] rounded-2xl shadow-2xl p-4 flex flex-col gap-2.5 text-white"
                 >
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Roles</span>
+                  <div className="flex justify-between items-center pb-2 border-b border-white/10">
+                    <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Select Roles</span>
                     <button
                       onClick={() => setActiveRoles(activeRoles.length === allRoles.length ? [] : allRoles)}
-                      className="text-[9px] font-extrabold text-indigo-650 hover:underline cursor-pointer"
+                      className="text-[9px] font-extrabold text-[#DFFE4A] hover:underline cursor-pointer"
                     >
                       {activeRoles.length === allRoles.length ? 'Clear' : 'Select All'}
                     </button>
@@ -651,10 +610,10 @@ export default function AnalyticsDashboard() {
                         <button
                           key={role}
                           onClick={() => toggleRole(role)}
-                          className="flex items-center justify-between text-left text-[11px] font-bold text-slate-655 hover:text-slate-900 transition-colors w-full cursor-pointer"
+                          className="flex items-center justify-between text-left text-[11px] font-bold text-white hover:text-[#DFFE4A] transition-colors w-full cursor-pointer"
                         >
                           <span>{role}</span>
-                          <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300'
+                          <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-[#6B805B] border-[#6B805B]/40 text-white' : 'border-white/30'
                             }`}>
                             {isSelected && <Check size={10} strokeWidth={3} />}
                           </div>
@@ -746,119 +705,127 @@ export default function AnalyticsDashboard() {
 
         </div>
 
-      </div>
+        <div className="border-t border-[#EADFC9]/40 my-2" />
 
-      {/* Primary Weekly Shift Attendance Grid */}
-      <div className="bg-white border border-slate-200 rounded-md overflow-hidden shadow-sm mt-1">
         {loading ? (
           <div className="p-20 flex flex-col items-center justify-center text-slate-500">
-            <Loader2 size={32} className="animate-spin mb-4 text-indigo-500" />
+            <Loader2 size={32} className="animate-spin mb-4 text-[#6B805B]" />
             <p className="font-bold text-xs">Loading ledger grid...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left border-collapse min-w-[1000px]">
-
+          <div className="overflow-x-auto w-full max-h-[680px] overflow-y-auto no-scrollbar pr-1">
+            <table className="w-full text-left border-collapse min-w-[1000px] bg-white border border-[#E2D8BF] shadow-sm">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-200/80">
-                  <th className="px-6 py-4 font-bold text-slate-450 text-[11px] uppercase tracking-wider w-1/4">Employee</th>
-                  {weekDates.map((day) => (
-                    <th key={day.dateStr} className="px-4 py-4 font-bold text-slate-800 text-xs w-1/12">
-                      <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-0.5">
-                        {day.dayName.substring(0, 3)}
-                      </span>
-                      <span className="text-sm font-black leading-none">{day.dayNum}</span>
-                    </th>
-                  ))}
+                <tr className="bg-[#FAF8F5] border-b border-[#E2D8BF]">
+                  <th className="px-5 py-3.5 font-black text-[#132c10] text-[11px] uppercase tracking-widest border border-[#E2D8BF] w-1/4">Employee</th>
+                  {weekDates.map((day) => {
+                    const isDayToday = day.isToday;
+                    return (
+                      <th
+                        key={day.dateStr}
+                        className={`px-3 py-3 font-bold text-xs w-1/12 text-center border border-[#E2D8BF] transition-all ${
+                          isDayToday ? 'bg-[#E0F2F1]/50 shadow-[inset_0_2px_4px_rgba(20,110,120,0.03)]' : ''
+                        }`}
+                      >
+                        <span className={`block text-[9px] font-black uppercase tracking-wider leading-none mb-1 ${
+                          isDayToday ? 'text-teal-700' : 'text-[#FDA769]'
+                        }`}>
+                          {day.dayName.substring(0, 3)}
+                        </span>
+                        <span className={`text-xs font-black leading-none ${
+                          isDayToday ? 'text-teal-700 scale-105 inline-block' : 'text-slate-800'
+                        }`}>
+                          {day.dayNum}
+                        </span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#E2D8BF] bg-white">
                 {finalFilteredPersons.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-16 text-center text-slate-400 font-bold text-xs">
+                    <td colSpan={8} className="px-6 py-16 text-center text-slate-400 font-bold text-xs border border-[#E2D8BF]">
                       No SVU employees match the selected filters or roles.
                     </td>
                   </tr>
                 ) : (
                   finalFilteredPersons.map((person) => (
-                    <tr key={person._id} className="hover:bg-slate-50/20 transition-colors">
-
-                      {/* Employee column with avatar, name, and designation */}
-                      <td className="px-5 py-3.5 flex items-center gap-3">
-                        {/* Improved modern avatar with circle mask */}
-                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(person.name)}`}>
-                          {person.name.charAt(0)}
+                    <tr key={person._id} className="hover:bg-[#FAF8F5]/45 transition-colors">
+                      {/* Employee Column (avatar initials, name, title) */}
+                      <td className="px-4 py-2.5 flex items-center gap-3 border border-[#E2D8BF] bg-[#FAF8F5]/30">
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm text-[10px] ${getAvatarGradient(person.name)}`}>
+                          {getInitials(person.name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span className="font-bold text-slate-800 block truncate text-xs" title={person.name}>
+                          <span className="font-extrabold text-[#132c10] block truncate text-[11.5px]" title={person.name}>
                             {person.name}
                           </span>
-                          <span className="text-[10px] font-bold text-slate-400 block mt-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 block mt-0.5">
                             {getDesignation(person.name)}
                           </span>
                         </div>
                       </td>
 
-                      {/* Sunday - Saturday Columns */}
+                      {/* Sunday - Saturday columns */}
                       {weekDates.map((day) => {
                         const rec = attendanceMap[`${person._id}_${day.dateStr}`];
                         const isFuture = new Date(day.dateStr) > new Date();
+                        const isDayToday = day.isToday;
 
-                        // Visual styling based on real database records
+                        let content = null;
+
                         if (rec) {
                           if (rec.status === 'Present') {
-                            return (
-                              <td key={day.dateStr} className="px-3 py-4">
-                                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px] rounded-sm shadow-sm">
-                                  ✓ 8 Hours
-                                </span>
-                              </td>
+                            content = (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#E8F5E9] border border-emerald-350 text-[#1B5E20] font-black text-[9.5px] rounded-md shadow-sm">
+                                <CheckCircle2 size={10} className="text-[#2E7D32]" />
+                                8 Hours
+                              </span>
                             );
                           } else if (rec.status === 'Late') {
-                            return (
-                              <td key={day.dateStr} className="px-3 py-4">
-                                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 border border-amber-250 text-amber-705 font-bold text-[10px] rounded-sm shadow-sm">
-                                  🕒 4h 36m
-                                </span>
-                              </td>
+                            content = (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FFF3E0] border border-orange-200 text-[#E65100] font-black text-[9.5px] rounded-md shadow-sm">
+                                <Clock size={10} className="text-[#F57F17]" />
+                                4h 36m
+                              </span>
                             );
                           } else {
-                            return (
-                              <td key={day.dateStr} className="px-3 py-4">
-                                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 border border-rose-250 text-rose-705 font-bold text-[10px] rounded-sm shadow-sm">
-                                  ⊗ Absent
-                                </span>
-                              </td>
+                            content = (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FFEBEE] border border-rose-350 text-[#B71C1C] font-black text-[9.5px] rounded-md shadow-sm">
+                                <XCircle size={10} className="text-[#C62828]" />
+                                Absent
+                              </span>
                             );
                           }
-                        }
-
-                        // Fallbacks if no record exists
-                        if (isFuture) {
-                          // Future days render stripes
-                          return (
-                            <td key={day.dateStr} className="p-0 border-r border-slate-100/50">
-                              <div className="w-full h-full min-h-[48px] bg-stripes bg-[length:12px_12px] opacity-25" />
-                            </td>
+                        } else if (isFuture) {
+                          content = <span className="text-[10px] text-slate-300/70 font-normal select-none">-</span>;
+                        } else {
+                          // Past days with no record display Leave badge
+                          content = (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#FEF9C3] border border-[#FDE047] text-[#854D0E] font-black text-[9.5px] rounded-md shadow-sm">
+                              <Plane size={10} className="text-[#854D0E] rotate-45" />
+                              Leave
+                            </span>
                           );
                         }
 
-                        // Past days with no record display Leave pill
                         return (
-                          <td key={day.dateStr} className="px-3 py-4">
-                            <span className="inline-flex items-center px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-800 font-bold text-[10px] rounded-sm shadow-sm">
-                              Leave
-                            </span>
+                          <td
+                            key={day.dateStr}
+                            className={`px-2 py-2 text-center border border-[#E2D8BF] ${
+                              isDayToday ? 'bg-[#E0F2F1]/20 font-black' : ''
+                            }`}
+                          >
+                            {content}
                           </td>
                         );
                       })}
-
                     </tr>
                   ))
                 )}
               </tbody>
-
             </table>
           </div>
         )}

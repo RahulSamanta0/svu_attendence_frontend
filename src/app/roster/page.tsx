@@ -188,8 +188,9 @@ export default function RosterPage() {
         title="SVU StaffSync AttendPro Directory"
         subtitle="Register new staff members and manage Sri Venkateswara University roster profiles."
         badge="Workspace"
+        variant="green"
         actions={
-          <span className="px-3.5 py-1.5 bg-indigo-50 border border-indigo-150 text-indigo-700 text-xs font-bold rounded-sm shadow-sm">
+          <span className="px-3.5 py-1.5 bg-[#FAF8F5]/80 border border-[#EADFC9]/40 text-[#6B805B] text-xs font-bold rounded-full shadow-sm">
             {persons.length} Employees Registered
           </span>
         }
@@ -203,15 +204,15 @@ export default function RosterPage() {
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.05 }}
-          className="w-full lg:w-1/3 bg-white p-5 rounded-md border border-slate-200 shadow-sm sticky top-6"
+          className="w-full lg:w-1/3 bg-[#EDE3CE] border border-white/60 rounded-[32px] p-5 shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] sticky top-6 flex flex-col gap-4"
         >
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-9 h-9 rounded-sm bg-indigo-50 flex items-center justify-center text-indigo-650 shrink-0">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-9 h-9 rounded-xl bg-[#8FA47F]/10 flex items-center justify-center text-[#6B805B] border border-[#8FA47F]/20 shrink-0">
               <UserPlus size={18} />
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-800">Register Employee</h2>
-              <p className="text-[10px] text-slate-400">Add profile details to the SVU database.</p>
+              <p className="text-[10px] text-slate-500 font-bold">Add profile details to the SVU database.</p>
             </div>
           </div>
 
@@ -226,7 +227,7 @@ export default function RosterPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-sm pl-9 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all font-semibold"
+                  className="w-full bg-[#FAF8F5] border border-[#EADFC9]/40 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FDA769]/20 transition-all font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)]"
                   placeholder="Full name (e.g. Dr. John Doe)"
                   required
                 />
@@ -234,16 +235,16 @@ export default function RosterPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.2">Employee ID / Code</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.2">Employee ID / Code</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-450 group-focus-within:text-indigo-600 transition-colors">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#FDA769] transition-colors">
                   <Hash size={15} />
                 </div>
                 <input
                   type="text"
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-sm pl-9 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all font-semibold"
+                  className="w-full bg-[#FAF8F5] border border-[#EADFC9]/40 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FDA769]/20 transition-all font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)]"
                   placeholder="Identity No. (e.g. SVU-1089)"
                   required
                 />
@@ -251,13 +252,13 @@ export default function RosterPage() {
             </div>
 
             <button
-              type="submit"
-              disabled={adding}
-              className="mt-2.5 w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold py-2.5 rounded-sm shadow-sm hover:shadow-sm hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer text-xs"
-            >
-              {adding ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-              {adding ? 'Registering employee...' : 'Register Employee'}
-            </button>
+               type="submit"
+               disabled={adding}
+               className="mt-2.5 w-full bg-[#6B805B] hover:bg-[#5A6E4B] disabled:bg-[#FAF8F5]/40 disabled:text-[#6B805B]/30 text-white font-bold py-2.5 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+             >
+               {adding ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+               {adding ? 'Registering employee...' : 'Register Employee'}
+             </button>
           </form>
         </motion.div>
 
@@ -269,7 +270,8 @@ export default function RosterPage() {
           className="w-full flex-1 flex flex-col gap-4"
         >
           {/* Controls Bar: Searching, Filtering, Sorting, Density, and Views */}
-          <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Controls Bar: Searching, Filtering, Sorting, Density, and Views */}
+          <div className="bg-[#EDE3CE] border border-white/60 rounded-[32px] p-5 shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Search */}
             <div className="relative flex-1 w-full max-w-sm">
               <input
@@ -277,28 +279,28 @@ export default function RosterPage() {
                 placeholder="Search by employee name or ID..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-sm text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-slate-400 font-semibold"
+                className="w-full pl-9 pr-3 py-2 border border-[#EADFC9]/40 bg-[#FAF8F5] rounded-xl text-xs focus:outline-none placeholder-slate-400 font-bold shadow-[inset_1px_1px_2px_rgba(165,155,135,0.08)]"
               />
-              <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-3 text-[#5C6E4E] pointer-events-none" />
             </div>
 
             {/* Sorters, Density and Toggles */}
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
 
               {/* Sorter */}
-              <div className="flex items-center gap-1.5 border border-slate-200/80 rounded-sm px-2.5 py-1.5 bg-slate-50/50">
-                <ArrowUpDown size={13} className="text-slate-400" />
+              <div className="flex items-center gap-1.5 border border-[#EADFC9]/40 rounded-xl px-2.5 py-1.5 bg-[#FAF8F5]/60 shadow-[inset_1px_1px_3px_rgba(165,155,135,0.08)]">
+                <ArrowUpDown size={13} className="text-[#FDA769]" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-transparent border-none text-[11px] font-bold text-slate-700 focus:outline-none cursor-pointer pr-1"
+                  className="bg-transparent border-none text-[11px] font-bold text-[#FDA769] focus:outline-none cursor-pointer pr-1"
                 >
                   <option value="name">Name</option>
                   <option value="id">Employee ID</option>
                 </select>
                 <button
                   onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                  className="p-0.5 hover:bg-slate-250 rounded text-slate-500 hover:text-slate-800 transition-all cursor-pointer font-black text-xs leading-none"
+                  className="p-0.5 hover:bg-[#FAF8F5]/80 rounded text-[#FDA769] transition-all cursor-pointer font-black text-xs leading-none"
                   title={sortOrder === 'asc' ? 'Sort Ascending' : 'Sort Descending'}
                 >
                   {sortOrder === 'asc' ? '↑' : '↓'}
@@ -306,36 +308,36 @@ export default function RosterPage() {
               </div>
 
               {/* Density sizes */}
-              <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-sm">
+              <div className="flex items-center gap-0.5 p-0.5 bg-[#FAF8F5] border border-[#EADFC9]/30 rounded-xl shadow-[inset_1px_1px_3px_rgba(165,155,135,0.08)]">
                 <button
                   onClick={() => setCardSize('compact')}
-                  className={`px-2.5 py-1.2 rounded-sm text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'compact'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-700'
+                  className={`px-2.5 py-1.2 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'compact'
+                      ? 'bg-white text-[#6B805B] shadow-sm'
+                      : 'text-[#FDA769]/60 hover:text-[#FDA769]'
                     }`}
                 >
                   Compact
                 </button>
                 <button
                   onClick={() => setCardSize('comfortable')}
-                  className={`px-2.5 py-1.2 rounded-sm text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'comfortable'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-700'
+                  className={`px-2.5 py-1.2 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${cardSize === 'comfortable'
+                      ? 'bg-white text-[#6B805B] shadow-sm'
+                      : 'text-[#FDA769]/60 hover:text-[#FDA769]'
                     }`}
                 >
                   Comfortable
                 </button>
               </div>
 
-              <div className="h-5 w-[1px] bg-slate-200 hidden sm:block" />
+              <div className="h-5 w-[1px] bg-[#EADFC9]/30 hidden sm:block" />
 
               {/* Layout view mode */}
-              <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-sm">
+              <div className="flex items-center gap-0.5 p-0.5 bg-[#FAF8F5] border border-[#EADFC9]/30 rounded-xl shadow-[inset_1px_1px_3px_rgba(165,155,135,0.08)]">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-sm transition-all cursor-pointer ${viewMode === 'grid'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-700'
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'grid'
+                      ? 'bg-white text-[#6B805B] shadow-sm'
+                      : 'text-[#FDA769]/60 hover:text-[#FDA769]'
                     }`}
                   title="Grid Cards View"
                 >
@@ -343,9 +345,9 @@ export default function RosterPage() {
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-sm transition-all cursor-pointer ${viewMode === 'list'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-700'
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'list'
+                      ? 'bg-white text-[#6B805B] shadow-sm'
+                      : 'text-[#FDA769]/60 hover:text-[#FDA769]'
                     }`}
                   title="Sheet View"
                 >
@@ -356,11 +358,11 @@ export default function RosterPage() {
             </div>
           </div>
 
-          {/* directory profiles area */}
-          <div className="min-h-[400px]">
+          {/* directory profiles area - scrollable without scrollbars */}
+          <div className="min-h-[400px] max-h-[680px] overflow-y-auto no-scrollbar pr-1">
             {loading ? (
               /* Shimmer skeletons */
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : 'flex flex-col gap-3 bg-white border border-slate-200 p-4 rounded-md shadow-sm'}>
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : 'flex flex-col gap-3 bg-white/80 backdrop-blur-sm border border-[#EADFC9]/30 p-4 rounded-2xl shadow-sm'}>
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center gap-3 animate-pulse py-2">
                     <div className="w-9 h-9 rounded bg-slate-200 shrink-0" />
@@ -376,9 +378,9 @@ export default function RosterPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white border border-slate-200/80 rounded-md p-10 text-center shadow-sm max-w-md mx-auto flex flex-col items-center gap-3 mt-6"
+                className="bg-white/80 backdrop-blur-sm border border-[#EADFC9]/30 rounded-2xl p-10 text-center shadow-sm max-w-md mx-auto flex flex-col items-center gap-3 mt-6"
               >
-                <div className="w-14 h-14 rounded bg-indigo-50 text-indigo-650 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-[#F5F2EB] text-[#FDA769] flex items-center justify-center border border-[#EADFC9]/40 shadow-sm">
                   <Users size={24} />
                 </div>
                 <div>
@@ -403,8 +405,8 @@ export default function RosterPage() {
                     <motion.div
                       key={person._id}
                       variants={itemVariants}
-                      whileHover={{ y: -3, boxShadow: '0 8px 12px -3px rgba(0, 0, 0, 0.05)' }}
-                      className={`bg-white rounded-sm border border-slate-200/80 hover:border-indigo-200 transition-all flex items-center gap-3 relative overflow-hidden ${isCompact ? 'p-3' : 'p-4.5'
+                      whileHover={{ y: -3, boxShadow: '0 12px 20px -8px rgba(107,128,91,0.12)' }}
+                      className={`bg-white/90 backdrop-blur-sm rounded-2xl border transition-all relative overflow-hidden flex items-center gap-3 border-[#EADFC9]/45 hover:border-[#6B805B]/65 shadow-sm shadow-[#8FA47F]/5 ${isCompact ? 'p-3' : 'p-4.5'
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -418,7 +420,7 @@ export default function RosterPage() {
                           }`} title={person.name}>
                           {person.name}
                         </span>
-                        <span className="text-[10px] font-mono font-medium text-indigo-600 block mt-0.5">
+                        <span className="text-[10px] font-mono font-medium text-[#FDA769] block mt-0.5">
                           ID: {person.employeeId}
                         </span>
                       </div>
@@ -433,27 +435,27 @@ export default function RosterPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-white border border-slate-200 rounded-md overflow-hidden shadow-sm"
+                className="bg-[#EDE3CE] border border-white/60 rounded-[32px] overflow-hidden shadow-[-12px_-12px_32px_#ffffff,_12px_12px_32px_rgba(180,170,150,0.35)] p-5 md:p-6 mt-1"
               >
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left border-collapse min-w-[500px]">
+                  <table className="w-full text-left border-collapse min-w-[500px] bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200/85">
-                        <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                      <tr className="bg-[#FAF8F5]/85 border-b border-[#EADFC9]/30">
+                        <th className={`font-bold text-[#FDA769] text-[10px] uppercase tracking-widest ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                           }`}>
                           SVU Employee Profile
                         </th>
-                        <th className={`font-bold text-slate-400 text-[10px] uppercase tracking-widest text-right ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
+                        <th className={`font-bold text-[#FDA769] text-[10px] uppercase tracking-widest text-right ${cardSize === 'compact' ? 'px-4 py-3' : 'px-6 py-4'
                           }`}>
                           Employee ID Code
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[#EADFC9]/20 bg-white/40">
                       {sortedPersons.map((p) => {
                         const isCompact = cardSize === 'compact';
                         return (
-                          <tr key={p._id} className="hover:bg-slate-50/50 transition-colors">
+                          <tr key={p._id} className="hover:bg-[#FAF8F5]/60 transition-colors border-b border-[#EADFC9]/25">
                             <td className={`flex items-center gap-3 ${isCompact ? 'px-4 py-2' : 'px-6 py-3.5'
                               }`}>
                               <div className={`rounded-full bg-gradient-to-br border flex items-center justify-center font-black shrink-0 uppercase transition-transform duration-300 hover:scale-105 shadow-sm ${getAvatarGradient(p.name)} ${isCompact ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-sm'
@@ -461,11 +463,11 @@ export default function RosterPage() {
                                 {p.name.charAt(0)}
                               </div>
                               <div>
-                                <span className="text-xs font-bold text-slate-900 leading-none">{p.name}</span>
+                                <span className="text-xs font-bold text-slate-800 leading-none">{p.name}</span>
                                 <span className="text-[9px] font-mono text-slate-400 block mt-0.5">SVU StaffSync AttendPro Registry</span>
                               </div>
                             </td>
-                            <td className={`font-mono text-indigo-650 font-bold text-xs text-right ${isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'
+                            <td className={`font-mono text-[#FDA769] font-bold text-xs text-right ${isCompact ? 'px-4 py-2.2' : 'px-6 py-3.5'
                               }`}>
                               {p.employeeId}
                             </td>

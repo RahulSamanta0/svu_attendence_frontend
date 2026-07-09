@@ -22,7 +22,8 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  RotateCcw
 } from 'lucide-react';
 
 
@@ -153,6 +154,15 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setStatusFilter('');
+    setPreset('custom');
+    setSearchQuery('');
+    addToast('Filters successfully reset.', 'info');
   };
 
   const openCalendar = () => {
@@ -732,10 +742,10 @@ export default function ReportsPage() {
           {/* Top Row: Title, Search & Density */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <h2 className="text-sm font-black text-[#6B7E39] tracking-tight uppercase flex items-center gap-2">
-                <FileSpreadsheet size={15} className="text-[#6B7E39]" /> Attendance Ledger Logs
+              <h2 className="text-sm font-black text-[#2E3F13] tracking-tight uppercase flex items-center gap-2">
+                <FileSpreadsheet size={15} className="text-[#2E3F13] stroke-[2.5]" /> Attendance Ledger Logs
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold mt-0.5">Filter ranges, status categories, and search names to view staff logs</p>
+              <p className="text-[10px] text-slate-600 font-bold mt-0.5">Filter ranges, status categories, and search names to view staff logs</p>
             </div>
 
             <div className="flex items-center gap-3 w-full lg:w-auto">
@@ -746,9 +756,9 @@ export default function ReportsPage() {
                   placeholder="Search staff name or ID..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-[#FAF8F5] border border-[#FDA769]/30 rounded-2xl text-xs text-[#FDA769] focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all placeholder-[#FDA769]/65 font-bold shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff]"
+                  className="w-full pl-9 pr-3 py-2.5 bg-[#FAF8F5] border border-[#FDA769]/80 rounded-2xl text-xs text-[#8A4F19] focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all placeholder-[#8A4F19]/70 font-black shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff]"
                 />
-                <Search size={14} className="absolute left-3 top-3 text-[#FDA769]" />
+                <Search size={14} className="absolute left-3 top-3 text-[#8A4F19] stroke-[2.5]" />
               </div>
             </div>
           </div>
@@ -758,21 +768,21 @@ export default function ReportsPage() {
             <div className="flex flex-wrap items-center gap-4 flex-1">
               {/* Preset Selector */}
               <div className="flex flex-col gap-1.5 w-full sm:flex-1 min-w-[150px]">
-                <label className="block text-[9px] font-extrabold text-[#FDA769] uppercase tracking-widest">
+                <label className="block text-[9px] font-extrabold text-[#8A4F19] uppercase tracking-widest">
                   Preset Range
                 </label>
                 <div className="relative">
                   <select
                     value={preset}
                     onChange={e => applyPreset(e.target.value as any)}
-                    className="w-full appearance-none bg-[#FAF8F5] border border-[#FCE68A]/30 rounded-2xl pl-3 pr-8 py-2.5 text-xs text-[#FDA769] font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer"
+                    className="w-full appearance-none bg-[#FAF8F5] border border-[#FDA769]/65 rounded-2xl pl-3 pr-8 py-2.5 text-xs text-[#8A4F19] font-black focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer"
                   >
                     <option value="week">This Week</option>
                     <option value="month">This Month</option>
                     <option value="year">This Year</option>
                     <option value="custom">Custom Range</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#8A4F19]">
                     <ChevronRight size={14} className="rotate-90" />
                   </div>
                 </div>
@@ -780,7 +790,7 @@ export default function ReportsPage() {
 
               {/* Custom Date Range Picker */}
               <div className="flex flex-col gap-1.5 w-full sm:flex-1 min-w-[200px] relative">
-                <label className="block text-[9px] font-extrabold text-[#FDA769] uppercase tracking-widest">
+                <label className="block text-[9px] font-extrabold text-[#8A4F19] uppercase tracking-widest">
                   Select Date Range
                 </label>
                 <div className="relative">
@@ -790,14 +800,14 @@ export default function ReportsPage() {
                       if (showCalendar) setShowCalendar(false);
                       else openCalendar();
                     }}
-                    className="w-full bg-[#FAF8F5] border border-[#FCE68A]/30 rounded-2xl pl-9 pr-3 py-2.5 text-xs text-[#FDA769] font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer flex items-center justify-between text-left"
+                    className="w-full bg-[#FAF8F5] border border-[#FDA769]/65 rounded-2xl pl-9 pr-3 py-2.5 text-xs text-[#8A4F19] font-black focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer flex items-center justify-between text-left"
                   >
                     <span>
                       {startDate && endDate
                         ? `${format(new Date(startDate), 'MMM d, yyyy')} - ${format(new Date(endDate), 'MMM d, yyyy')}`
                         : 'Select Date Range'}
                     </span>
-                    <Calendar size={14} className="text-[#FDA769] shrink-0 ml-2" />
+                    <Calendar size={14} className="text-[#8A4F19] shrink-0 ml-2" />
                   </button>
 
                   {/* Calendar Popover */}
@@ -909,13 +919,13 @@ export default function ReportsPage() {
 
               {/* Status Filter */}
               <div className="flex flex-col gap-1.5 w-full sm:flex-1 min-w-[150px]">
-                <label className="block text-[9px] font-extrabold text-[#FDA769] uppercase tracking-widest">
+                <label className="block text-[9px] font-extrabold text-[#8A4F19] uppercase tracking-widest">
                   Attendance Status
                 </label>
                 <select
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
-                  className="w-full bg-[#FAF8F5] border border-[#FCE68A]/30 rounded-2xl px-3 py-2.5 text-xs text-[#FDA769] font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer"
+                  className="w-full bg-[#FAF8F5] border border-[#FDA769]/65 rounded-2xl px-3 py-2.5 text-xs text-[#8A4F19] font-black focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-[#FDA769] transition-all shadow-[inset_2px_2px_5px_rgba(165,155,135,0.18),_inset_-3px_-3px_6px_#ffffff] cursor-pointer"
                 >
                   <option value="">All Statuses</option>
                   <option value="Present">Present</option>
@@ -926,7 +936,13 @@ export default function ReportsPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+            <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap sm:flex-nowrap">
+              <button
+                onClick={handleResetFilters}
+                className="flex-1 md:flex-none px-4 py-2.5 bg-white hover:bg-slate-50 text-[#8A4F19] font-black rounded-2xl text-xs transition-all border border-[#FDA769]/65 shadow-[-4px_-4px_12px_#ffffff,_6px_6px_12px_rgba(165,155,135,0.12)] hover:-translate-y-1 hover:shadow-[-6px_-6px_16px_#ffffff,_8px_8px_16px_rgba(165,155,135,0.18)] active:translate-y-0.5 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw size={14} className="stroke-[2.5]" /> Reset Filters
+              </button>
               <button
                 onClick={fetchReports}
                 className="flex-1 md:flex-none px-5 py-2.5 bg-[#FDA769] hover:bg-[#e09156] text-white font-bold rounded-2xl text-xs transition-all border border-white/20 shadow-[-4px_-4px_12px_#ffffff,_6px_6px_12px_rgba(165,155,135,0.25),_inset_2px_2px_4px_rgba(255,255,255,0.4),_inset_-2px_-2px_4px_rgba(0,0,0,0.15)] hover:-translate-y-1 hover:shadow-[-6px_-6px_16px_#ffffff,_8px_8px_16px_rgba(165,155,135,0.32)] active:translate-y-0.5 active:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.18),_inset_-3px_-3px_6px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2 cursor-pointer"
