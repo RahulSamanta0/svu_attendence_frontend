@@ -152,8 +152,8 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT PANEL - Form as a Centered Popup on Mobile */}
-      <div className="w-full lg:w-[55%] flex flex-col bg-transparent lg:bg-white lg:rounded-l-[3rem] shadow-none lg:shadow-[-20px_0_40px_rgba(0,0,0,0.1)] relative overflow-hidden py-10 px-6 sm:px-16 lg:px-24 xl:px-32 z-20 items-center justify-center min-h-screen">
-        <div className="flex flex-col justify-center lg:flex-1 max-w-[420px] w-full mx-auto bg-white/10 backdrop-blur-xl lg:bg-transparent rounded-[2rem] lg:rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.25)] lg:shadow-none border border-white/20 lg:border-none p-6 sm:p-10 lg:p-0 my-auto">
+      <div className="w-full lg:w-[55%] flex flex-col bg-transparent lg:bg-[#F5F2EB] lg:rounded-l-[3rem] shadow-none lg:shadow-[-20px_0_40px_rgba(0,0,0,0.1)] relative overflow-hidden py-10 px-6 sm:px-16 lg:px-24 xl:px-32 z-20 items-center justify-center min-h-screen">
+        <div className="flex flex-col justify-center lg:flex-1 max-w-[420px] w-full mx-auto bg-[#F5F2EB]/20 backdrop-blur-xl lg:bg-transparent rounded-[2rem] lg:rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.25)] lg:shadow-none border border-white/20 lg:border-none p-6 sm:p-10 lg:p-0 my-auto">
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
