@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
+import ToastNotification from '@/components/ToastNotification';
 import {
   ChevronLeft,
   ChevronRight,
@@ -213,8 +214,8 @@ export default function AttendancePage() {
           [personId]: { status, checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: current.leaveReason || '' }
         };
       }
-      const updatedCheckIn = current.checkInTime || (status === 'Late' ? '12:00' : '10:30');
-      const updatedCheckOut = current.checkOutTime || '18:00';
+      const updatedCheckIn = current.checkInTime || (status === 'Late' ? '12:00' : bulkInTime);
+      const updatedCheckOut = current.checkOutTime || bulkOutTime;
       return {
         ...prev,
         [personId]: { ...current, status, checkInTime: updatedCheckIn, checkOutTime: updatedCheckOut }
@@ -224,10 +225,21 @@ export default function AttendancePage() {
 
   const handleTimeChange = (personId: string, field: 'checkInTime' | 'checkOutTime', value: string) => {
     if (!isToday) return;
-    setRecords(prev => ({
-      ...prev,
-      [personId]: { ...prev[personId], [field]: value }
-    }));
+    setRecords(prev => {
+      const current = prev[personId] || { status: 'Absent', checkInTime: '', checkOutTime: '', isEarlyCheckOut: false, leaveReason: '' };
+      let newStatus = current.status;
+      if (field === 'checkInTime') {
+        if (value) {
+          newStatus = value > '10:00' ? 'Late' : 'Present';
+        } else {
+          newStatus = 'Absent';
+        }
+      }
+      return {
+        ...prev,
+        [personId]: { ...current, [field]: value, status: newStatus }
+      };
+    });
   };
 
   const handleEarlyToggle = (personId: string) => {
@@ -255,7 +267,7 @@ export default function AttendancePage() {
         status: data.status,
         checkInTime: data.checkInTime,
         checkOutTime: data.checkOutTime,
-        isEarlyCheckOut: data.checkOutTime ? data.checkOutTime < '18:00' : false,
+        isEarlyCheckOut: data.checkOutTime ? data.checkOutTime < bulkOutTime : false,
         leaveReason: data.leaveReason
       }));
       await axios.post(`${API_URL}/attendance`, { date, records: recordsArray });
@@ -319,8 +331,8 @@ export default function AttendancePage() {
       updated[p._id] = {
         ...current,
         status: 'Present',
-        checkInTime: current.checkInTime || '10:30',
-        checkOutTime: current.checkOutTime || '18:00'
+        checkInTime: current.checkInTime || bulkInTime,
+        checkOutTime: current.checkOutTime || bulkOutTime
       };
     });
     setRecords(updated);
@@ -356,7 +368,11 @@ export default function AttendancePage() {
       persons.forEach(p => {
         const rec = updated[p._id];
         if (rec && (rec.status === 'Present' || rec.status === 'Late')) {
-          updated[p._id] = { ...rec, [field]: value };
+          let newStatus = rec.status;
+          if (field === 'checkInTime') {
+            newStatus = value > '10:00' ? 'Late' : 'Present';
+          }
+          updated[p._id] = { ...rec, [field]: value, status: newStatus };
         }
       });
       return updated;
@@ -432,29 +448,7 @@ export default function AttendancePage() {
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800">
 
       {/* Toast Notifications */}
-      <div className="fixed top-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
-        <AnimatePresence>
-          {toasts.map(toast => (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8, x: 50 }}
-              className={`p-4 rounded-sm shadow-sm border backdrop-blur-md pointer-events-auto flex items-center gap-3 ${toast.type === 'success'
-                ? 'bg-emerald-50/95 border-emerald-200/80 text-emerald-800'
-                : toast.type === 'error'
-                  ? 'bg-rose-50/95 border-rose-200/80 text-rose-800'
-                  : 'bg-indigo-50/95 border-indigo-200/80 text-indigo-800'
-                }`}
-            >
-              {toast.type === 'success' && <CheckCircle2 className="text-emerald-500 shrink-0" size={20} />}
-              {toast.type === 'error' && <AlertCircle className="text-rose-500 shrink-0" size={20} />}
-              {toast.type === 'info' && <AlertCircle className="text-indigo-500 shrink-0" size={20} />}
-              <span className="text-sm font-semibold">{toast.message}</span>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      <ToastNotification toasts={toasts} onClose={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
       <PageHeader
         title="SVU StaffSync AttendPro Attendance"

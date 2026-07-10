@@ -6,6 +6,7 @@ import axios from 'axios';
 import { Playfair_Display } from 'next/font/google';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Eye, EyeOff, ArrowRight, Flag, LayoutGrid, Menu, List, Target } from 'lucide-react';
+import ToastNotification from '@/components/ToastNotification';
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '600', '700', '800'] });
 
@@ -68,32 +69,7 @@ export default function LoginPage() {
     <div className="fixed inset-0 z-[100] flex min-h-screen font-sans bg-[#221f1c]">
 
       {/* Toast Notifications */}
-      <div className="fixed top-6 right-6 z-[110] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
-        <AnimatePresence>
-          {toasts.map(toast => (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8, x: 50 }}
-              className={`p-4 rounded-md shadow-lg border backdrop-blur-md pointer-events-auto flex items-start gap-3 ${toast.type === 'success'
-                ? 'bg-emerald-900/90 border-emerald-700/50 text-emerald-50'
-                : toast.type === 'error'
-                  ? 'bg-rose-900/90 border-rose-700/50 text-rose-50'
-                  : 'bg-slate-900/90 border-slate-700/50 text-slate-50'
-                }`}
-            >
-              {toast.type === 'success' && <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5" size={18} />}
-              {toast.type === 'error' && <AlertCircle className="text-rose-400 shrink-0 mt-0.5" size={18} />}
-              {toast.type === 'info' && <AlertCircle className="text-blue-400 shrink-0 mt-0.5" size={18} />}
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">{toast.type === 'error' ? 'Authentication Failed' : 'System Notice'}</span>
-                <span className="text-xs opacity-90 mt-0.5">{toast.message}</span>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      <ToastNotification toasts={toasts} onClose={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
       {/* LEFT PANEL / BACKGROUND GRAPHIC */}
       <div className="absolute inset-0 lg:relative w-full h-full lg:w-[45%] lg:h-auto flex items-center justify-center overflow-hidden z-10 bg-[#221f1c]">

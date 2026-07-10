@@ -8,6 +8,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
+import ToastNotification from '@/components/ToastNotification';
 import {
   Download,
   Search,
@@ -386,29 +387,7 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-12 text-slate-800">
 
       {/* Toast Notification Container */}
-      <div className="fixed top-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
-        <AnimatePresence>
-          {toasts.map(toast => (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8, x: 50 }}
-              className={`p-4 rounded-sm shadow-sm border backdrop-blur-md pointer-events-auto flex items-center gap-3 ${toast.type === 'success'
-                ? 'bg-emerald-50/95 border-emerald-200/80 text-emerald-800'
-                : toast.type === 'error'
-                  ? 'bg-rose-50/95 border-rose-200/80 text-rose-800'
-                  : 'bg-indigo-50/95 border-indigo-200/80 text-indigo-800'
-                }`}
-            >
-              {toast.type === 'success' && <CheckCircle2 className="text-emerald-500 shrink-0" size={20} />}
-              {toast.type === 'error' && <AlertCircle className="text-rose-500 shrink-0" size={20} />}
-              {toast.type === 'info' && <AlertCircle className="text-indigo-500 shrink-0" size={20} />}
-              <span className="text-sm font-semibold">{toast.message}</span>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      <ToastNotification toasts={toasts} onClose={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
       <PageHeader
         title="Attendance Ledger & Reports"
