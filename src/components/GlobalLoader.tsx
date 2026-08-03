@@ -21,7 +21,7 @@ export default function GlobalLoader() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.35, ease: 'easeInOut' }}
-          className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-4"
         >
           {/* Apple iOS Activity Indicator — 12 pill-shaped bars */}
           <div
@@ -30,12 +30,12 @@ export default function GlobalLoader() {
             aria-live="polite"
             className="iphone-spinner"
             style={{
-              '--spinner-size':  '64px',
+              '--spinner-size':  '96px',
               '--spinner-color': '#3a3a3c',
               '--spinner-speed': '1s',
-              '--bar-width':     '6.5px',
-              '--bar-height':    '17px',
-              '--bar-gap':       '10px',
+              '--bar-width':     '9px',
+              '--bar-height':    '24px',
+              '--bar-gap':       '14px',
             } as React.CSSProperties}
           >
             {Array.from({ length: 12 }).map((_, i) => (
