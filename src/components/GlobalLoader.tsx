@@ -23,35 +23,21 @@ export default function GlobalLoader() {
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          className="fixed inset-0 z-[9999] bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center"
+          transition={{ duration: 0.4, ease: 'easeInOut' }}
+          className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-5"
         >
-          {/* Aesthetic multi-shape loader */}
-          <div className="flex items-center justify-center scale-90">
-            <div className="loader">
-              <svg viewBox="0 0 80 80">
-                <circle r="32" cy="40" cx="40" id="test"></circle>
-              </svg>
-            </div>
-
-            <div className="loader triangle">
-              <svg viewBox="0 0 86 80">
-                <polygon points="43 8 79 72 7 72"></polygon>
-              </svg>
-            </div>
-
-            <div className="loader">
-              <svg viewBox="0 0 80 80">
-                <rect height="64" width="64" y="8" x="8"></rect>
-              </svg>
-            </div>
+          {/* iPhone-style Activity Indicator */}
+          <div className="iphone-spinner text-slate-500" style={{ width: 48, height: 48 }}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={i} />
+            ))}
           </div>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 10 }}
+
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mt-14 text-xs font-black text-indigo-950/80 tracking-[0.3em] uppercase drop-shadow-sm"
+            transition={{ delay: 0.3 }}
+            className="text-[11px] font-semibold text-slate-400 tracking-[0.25em] uppercase"
           >
             SVU StaffSync AttendPro
           </motion.p>
