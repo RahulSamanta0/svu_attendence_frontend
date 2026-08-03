@@ -86,9 +86,11 @@ export default function RosterPage() {
       setName('');
       setEmployeeId('');
       fetchPersons();
-    } catch (err) {
-      console.error(err);
-      addToast('Failed to add employee. Make sure ID is unique.', 'error');
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? 'Failed to add employee. Please try again.';
+      addToast(message, 'error');
     } finally {
       setAdding(false);
     }
