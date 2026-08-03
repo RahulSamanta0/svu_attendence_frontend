@@ -10,10 +10,7 @@ export default function GlobalLoader() {
 
   useEffect(() => {
     setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
+    const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
   }, [pathname]);
 
@@ -23,21 +20,36 @@ export default function GlobalLoader() {
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: 'easeInOut' }}
-          className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-5"
+          transition={{ duration: 0.35, ease: 'easeInOut' }}
+          className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4"
         >
-          {/* iPhone-style Activity Indicator */}
-          <div className="iphone-spinner text-slate-500" style={{ width: 48, height: 48 }}>
+          {/* Apple iOS Activity Indicator — 12 pill-shaped bars */}
+          <div
+            role="status"
+            aria-label="Loading"
+            aria-live="polite"
+            className="iphone-spinner"
+            style={{
+              '--spinner-size':  '64px',
+              '--spinner-color': '#3a3a3c',
+              '--spinner-speed': '1s',
+              '--bar-width':     '6.5px',
+              '--bar-height':    '17px',
+              '--bar-gap':       '10px',
+            } as React.CSSProperties}
+          >
             {Array.from({ length: 12 }).map((_, i) => (
-              <span key={i} />
+              <span key={i} aria-hidden="true" />
             ))}
           </div>
 
+          {/* Subtle label */}
           <motion.p
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-[11px] font-semibold text-slate-400 tracking-[0.25em] uppercase"
+            transition={{ delay: 0.25 }}
+            className="text-[11px] font-medium text-slate-400 tracking-[0.22em] uppercase select-none"
+            aria-hidden="true"
           >
             SVU StaffSync AttendPro
           </motion.p>
@@ -46,3 +58,4 @@ export default function GlobalLoader() {
     </AnimatePresence>
   );
 }
+

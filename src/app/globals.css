@@ -17,42 +17,82 @@ body {
   min-height: 100vh;
 }
 
-/* iPhone-style (iOS Activity Indicator) loader */
-@keyframes ios-spin {
-  0%   { opacity: 1; }
-  100% { opacity: 0.15; }
+/* ================================================
+   Apple iOS-style Activity Indicator
+   Pure CSS — no images, SVGs, or external libraries
+   Scalable via CSS custom properties
+   Follows Apple Human Interface Guidelines
+   ================================================ */
+
+@keyframes ios-fade {
+  0%   { opacity: 1;    }
+  100% { opacity: 0.12; }
 }
 
+/**
+ * Customize via CSS variables on .iphone-spinner:
+ *   --spinner-size   overall diameter       (default 56px)
+ *   --spinner-color  bar fill color         (default #3a3a3c)
+ *   --spinner-speed  one full rotation      (default 1s)
+ *   --bar-width      stroke thickness       (default 5.5px)
+ *   --bar-height     bar length             (default 15px)
+ *   --bar-gap        center-to-bar gap      (default 9px)
+ */
 .iphone-spinner {
+  --spinner-size:  56px;
+  --spinner-color: #3a3a3c;
+  --spinner-speed: 1s;
+  --bar-width:     5.5px;
+  --bar-height:    15px;
+  --bar-gap:       9px;
+
   position: relative;
-  width: 40px;
-  height: 40px;
+  display: inline-block;
+  width:  var(--spinner-size);
+  height: var(--spinner-size);
 }
 
+/* Each of the 12 bars */
 .iphone-spinner span {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 3px;
-  height: 10px;
-  border-radius: 2px;
-  background: currentColor;
-  transform-origin: center -6px;
-  animation: ios-spin 1s linear infinite;
+  position:    absolute;
+  top:         50%;
+  left:        50%;
+  width:       var(--bar-width);
+  height:      var(--bar-height);
+  /* Center bar horizontally, then lift it to 12-o'clock position */
+  margin-left: calc(var(--bar-width)  * -0.5);
+  margin-top:  calc((var(--bar-gap) + var(--bar-height)) * -1);
+  border-radius: calc(var(--bar-width) * 0.5);
+  background:    var(--spinner-color);
+  /* Pivot around the center of the container */
+  transform-origin: 50% calc(var(--bar-gap) + var(--bar-height));
+  opacity:     0.12;
+  /* GPU-accelerated — only opacity changes, no layout */
+  will-change: opacity;
+  animation:   ios-fade var(--spinner-speed) linear infinite;
 }
 
-.iphone-spinner span:nth-child(1)  { transform: rotate(0deg)   translateY(-50%); animation-delay: -0.9167s; }
-.iphone-spinner span:nth-child(2)  { transform: rotate(30deg)  translateY(-50%); animation-delay: -0.8334s; }
-.iphone-spinner span:nth-child(3)  { transform: rotate(60deg)  translateY(-50%); animation-delay: -0.75s;   }
-.iphone-spinner span:nth-child(4)  { transform: rotate(90deg)  translateY(-50%); animation-delay: -0.6667s; }
-.iphone-spinner span:nth-child(5)  { transform: rotate(120deg) translateY(-50%); animation-delay: -0.5834s; }
-.iphone-spinner span:nth-child(6)  { transform: rotate(150deg) translateY(-50%); animation-delay: -0.5s;    }
-.iphone-spinner span:nth-child(7)  { transform: rotate(180deg) translateY(-50%); animation-delay: -0.4167s; }
-.iphone-spinner span:nth-child(8)  { transform: rotate(210deg) translateY(-50%); animation-delay: -0.3334s; }
-.iphone-spinner span:nth-child(9)  { transform: rotate(240deg) translateY(-50%); animation-delay: -0.25s;   }
-.iphone-spinner span:nth-child(10) { transform: rotate(270deg) translateY(-50%); animation-delay: -0.1667s; }
-.iphone-spinner span:nth-child(11) { transform: rotate(300deg) translateY(-50%); animation-delay: -0.0834s; }
-.iphone-spinner span:nth-child(12) { transform: rotate(330deg) translateY(-50%); animation-delay: 0s;       }
+/* Pixel-perfect placement — 30° apart, staggered delays */
+.iphone-spinner span:nth-child(1)  { transform: rotate(  0deg); animation-delay: calc(var(--spinner-speed) *  0.000); }
+.iphone-spinner span:nth-child(2)  { transform: rotate( 30deg); animation-delay: calc(var(--spinner-speed) * -0.083); }
+.iphone-spinner span:nth-child(3)  { transform: rotate( 60deg); animation-delay: calc(var(--spinner-speed) * -0.167); }
+.iphone-spinner span:nth-child(4)  { transform: rotate( 90deg); animation-delay: calc(var(--spinner-speed) * -0.250); }
+.iphone-spinner span:nth-child(5)  { transform: rotate(120deg); animation-delay: calc(var(--spinner-speed) * -0.333); }
+.iphone-spinner span:nth-child(6)  { transform: rotate(150deg); animation-delay: calc(var(--spinner-speed) * -0.417); }
+.iphone-spinner span:nth-child(7)  { transform: rotate(180deg); animation-delay: calc(var(--spinner-speed) * -0.500); }
+.iphone-spinner span:nth-child(8)  { transform: rotate(210deg); animation-delay: calc(var(--spinner-speed) * -0.583); }
+.iphone-spinner span:nth-child(9)  { transform: rotate(240deg); animation-delay: calc(var(--spinner-speed) * -0.667); }
+.iphone-spinner span:nth-child(10) { transform: rotate(270deg); animation-delay: calc(var(--spinner-speed) * -0.750); }
+.iphone-spinner span:nth-child(11) { transform: rotate(300deg); animation-delay: calc(var(--spinner-speed) * -0.833); }
+.iphone-spinner span:nth-child(12) { transform: rotate(330deg); animation-delay: calc(var(--spinner-speed) * -0.917); }
+
+/* Accessibility: respect user's reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .iphone-spinner span {
+    animation-duration: 4s;
+    animation-timing-function: steps(12);
+  }
+}
 
 
 
